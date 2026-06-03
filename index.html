@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PhysioQ NBME</title>
+    <link rel="stylesheet" href="styles.css?v=2">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Question setup panel">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">P</div>
+          <div>
+            <h1>PhysioQ</h1>
+            <p>Medical physiology</p>
+          </div>
+        </div>
+
+        <section class="setup-panel" aria-labelledby="setup-title">
+          <h2 id="setup-title">Create Block</h2>
+
+          <label class="field">
+            <span>System</span>
+            <select id="systemSelect"></select>
+          </label>
+
+          <label class="field">
+            <span>Topic</span>
+            <select id="topicSelect"></select>
+          </label>
+
+          <div class="integrated-shortcuts" aria-labelledby="integrated-title">
+            <span id="integrated-title">Integrated blocks</span>
+            <div id="integratedLinks"></div>
+          </div>
+
+          <div class="field">
+            <span>Mode</span>
+            <div class="segmented" role="group" aria-label="Practice mode">
+              <button class="active" type="button" data-mode="tutor">Tutor</button>
+              <button type="button" data-mode="exam">Exam</button>
+            </div>
+          </div>
+
+          <label class="field">
+            <span>Number of questions</span>
+            <input id="countInput" type="number" min="1" max="100" value="5">
+          </label>
+
+          <div class="block-actions">
+            <button id="startBtn" class="primary-btn" type="button">Start Block</button>
+            <button id="downloadPdfBtn" class="download-block-btn" type="button" disabled>Download PDF</button>
+          </div>
+        </section>
+
+        <section class="bank-panel" aria-labelledby="bank-title">
+          <h2 id="bank-title">Question Bank</h2>
+          <div class="bank-counts">
+            <div>
+              <span id="bankTotalStat">0</span>
+              <p>Total items</p>
+            </div>
+            <div>
+              <span id="bankSystemStat">0</span>
+              <p>Selected system</p>
+            </div>
+          </div>
+          <label class="field">
+            <span>Question ID</span>
+            <input id="questionIdInput" type="text" placeholder="CV0001">
+          </label>
+          <div class="bank-actions">
+            <button id="loadIdBtn" class="secondary-on-dark" type="button">Load ID</button>
+            <button id="rebuildBankBtn" class="secondary-on-dark" type="button">Rebuild Bank</button>
+          </div>
+          <p id="bankStatus" class="bank-status">Stored locally</p>
+        </section>
+
+        <section class="stats-panel" aria-labelledby="stats-title">
+          <h2 id="stats-title">Performance</h2>
+          <div class="stat-grid">
+            <div>
+              <span id="answeredStat">0</span>
+              <p>Answered</p>
+            </div>
+            <div>
+              <span id="accuracyStat">0%</span>
+              <p>Correct</p>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div>
+            <p id="blockMeta" class="eyebrow">Ready to begin</p>
+            <h2 id="questionTitle">First-year medical physiology question bank</h2>
+          </div>
+          <div class="topbar-actions">
+            <button id="normalValuesTab" class="normal-values-tab" type="button" aria-expanded="false" aria-controls="normalValuesPanel">Normal Values</button>
+            <div class="timer" aria-live="polite">
+              <span>Time</span>
+              <strong id="timerText">00:00</strong>
+            </div>
+          </div>
+        </header>
+
+        <section id="normalValuesPanel" class="normal-values-panel" aria-label="Normal laboratory values" hidden>
+          <div class="normal-values-header">
+            <h2>Normal Values</h2>
+            <button id="closeNormalValuesBtn" type="button" aria-label="Close normal values">Close</button>
+          </div>
+          <div class="normal-values-grid">
+            <table>
+              <caption>Complete Blood Count</caption>
+              <tbody>
+                <tr><th>Hemoglobin, male</th><td>13.5-17.5 g/dL</td></tr>
+                <tr><th>Hemoglobin, female</th><td>12.0-16.0 g/dL</td></tr>
+                <tr><th>Hematocrit, male</th><td>41%-53%</td></tr>
+                <tr><th>Hematocrit, female</th><td>36%-46%</td></tr>
+                <tr><th>MCV</th><td>80-100 fL</td></tr>
+                <tr><th>Reticulocytes</th><td>0.5%-2.5%</td></tr>
+                <tr><th>WBC count</th><td>4,500-11,000/mm3</td></tr>
+                <tr><th>Neutrophils</th><td>40%-70%</td></tr>
+                <tr><th>Lymphocytes</th><td>20%-40%</td></tr>
+                <tr><th>Platelets</th><td>150,000-400,000/mm3</td></tr>
+              </tbody>
+            </table>
+            <table>
+              <caption>Serum Chemistry</caption>
+              <tbody>
+                <tr><th>Sodium</th><td>135-145 mEq/L</td></tr>
+                <tr><th>Potassium</th><td>3.5-5.0 mEq/L</td></tr>
+                <tr><th>Chloride</th><td>98-106 mEq/L</td></tr>
+                <tr><th>Bicarbonate</th><td>22-28 mEq/L</td></tr>
+                <tr><th>BUN</th><td>7-20 mg/dL</td></tr>
+                <tr><th>Creatinine</th><td>0.6-1.2 mg/dL</td></tr>
+                <tr><th>Glucose, fasting</th><td>70-100 mg/dL</td></tr>
+                <tr><th>Magnesium</th><td>1.5-2.5 mEq/L</td></tr>
+                <tr><th>Calcium</th><td>8.5-10.5 mg/dL</td></tr>
+                <tr><th>Phosphate</th><td>2.5-4.5 mg/dL</td></tr>
+              </tbody>
+            </table>
+            <table>
+              <caption>Arterial Blood Gas</caption>
+              <tbody>
+                <tr><th>pH</th><td>7.35-7.45</td></tr>
+                <tr><th>PaCO2</th><td>35-45 mm Hg</td></tr>
+                <tr><th>PaO2</th><td>80-100 mm Hg</td></tr>
+                <tr><th>SaO2</th><td>95%-100%</td></tr>
+                <tr><th>HCO3-</th><td>22-28 mEq/L</td></tr>
+                <tr><th>Base excess</th><td>-2 to +2 mEq/L</td></tr>
+                <tr><th>A-a gradient, young</th><td>&lt;15 mm Hg</td></tr>
+                <tr><th>O2 content</th><td>~20 mL/dL</td></tr>
+              </tbody>
+            </table>
+            <table>
+              <caption>Coagulation</caption>
+              <tbody>
+                <tr><th>PT</th><td>11-15 sec</td></tr>
+                <tr><th>INR</th><td>0.8-1.2</td></tr>
+                <tr><th>aPTT</th><td>25-35 sec</td></tr>
+                <tr><th>Bleeding time</th><td>2-7 min</td></tr>
+                <tr><th>Fibrinogen</th><td>200-400 mg/dL</td></tr>
+                <tr><th>D-dimer</th><td>&lt;500 ng/mL FEU</td></tr>
+              </tbody>
+            </table>
+            <table>
+              <caption>Liver & Pancreas</caption>
+              <tbody>
+                <tr><th>AST</th><td>8-40 U/L</td></tr>
+                <tr><th>ALT</th><td>7-56 U/L</td></tr>
+                <tr><th>Alkaline phosphatase</th><td>45-115 U/L</td></tr>
+                <tr><th>Total bilirubin</th><td>0.1-1.2 mg/dL</td></tr>
+                <tr><th>Direct bilirubin</th><td>0.0-0.3 mg/dL</td></tr>
+                <tr><th>Albumin</th><td>3.5-5.0 g/dL</td></tr>
+                <tr><th>Amylase</th><td>25-125 U/L</td></tr>
+                <tr><th>Lipase</th><td>10-140 U/L</td></tr>
+              </tbody>
+            </table>
+            <table>
+              <caption>Renal & Urine</caption>
+              <tbody>
+                <tr><th>Serum osmolality</th><td>275-295 mOsm/kg</td></tr>
+                <tr><th>Urine osmolality</th><td>50-1200 mOsm/kg</td></tr>
+                <tr><th>Urine specific gravity</th><td>1.003-1.030</td></tr>
+                <tr><th>Urine pH</th><td>4.5-8.0</td></tr>
+                <tr><th>Creatinine clearance</th><td>90-140 mL/min</td></tr>
+                <tr><th>Fractional excretion Na</th><td>&lt;1% prerenal</td></tr>
+              </tbody>
+            </table>
+            <table>
+              <caption>Cardiopulmonary</caption>
+              <tbody>
+                <tr><th>Cardiac output</th><td>4-8 L/min</td></tr>
+                <tr><th>Cardiac index</th><td>2.5-4.0 L/min/m2</td></tr>
+                <tr><th>Ejection fraction</th><td>55%-70%</td></tr>
+                <tr><th>MAP</th><td>~70-105 mm Hg</td></tr>
+                <tr><th>CVP</th><td>2-6 mm Hg</td></tr>
+                <tr><th>FEV1/FVC</th><td>&gt;70%</td></tr>
+                <tr><th>TLC</th><td>~6 L</td></tr>
+                <tr><th>Residual volume</th><td>~1.2 L</td></tr>
+              </tbody>
+            </table>
+            <table>
+              <caption>Endocrine & Metabolic</caption>
+              <tbody>
+                <tr><th>Fasting glucose</th><td>70-100 mg/dL</td></tr>
+                <tr><th>HbA1c</th><td>&lt;5.7%</td></tr>
+                <tr><th>Calcium</th><td>8.5-10.5 mg/dL</td></tr>
+                <tr><th>Phosphate</th><td>2.5-4.5 mg/dL</td></tr>
+                <tr><th>TSH</th><td>0.4-4.0 mU/L</td></tr>
+                <tr><th>Free T4</th><td>0.8-1.8 ng/dL</td></tr>
+                <tr><th>Cortisol, 8 AM</th><td>5-23 mcg/dL</td></tr>
+                <tr><th>PTH</th><td>10-65 pg/mL</td></tr>
+                <tr><th>25-OH vitamin D</th><td>20-50 ng/mL</td></tr>
+              </tbody>
+            </table>
+            <table>
+              <caption>Lipids & Iron</caption>
+              <tbody>
+                <tr><th>Total cholesterol</th><td>&lt;200 mg/dL</td></tr>
+                <tr><th>LDL cholesterol</th><td>&lt;100 mg/dL</td></tr>
+                <tr><th>HDL cholesterol</th><td>&gt;40 mg/dL male; &gt;50 female</td></tr>
+                <tr><th>Triglycerides</th><td>&lt;150 mg/dL</td></tr>
+                <tr><th>Ferritin, male</th><td>24-336 ng/mL</td></tr>
+                <tr><th>Ferritin, female</th><td>11-307 ng/mL</td></tr>
+                <tr><th>Serum iron</th><td>60-170 mcg/dL</td></tr>
+                <tr><th>TIBC</th><td>240-450 mcg/dL</td></tr>
+              </tbody>
+            </table>
+            <table>
+              <caption>Reproductive</caption>
+              <tbody>
+                <tr><th>LH, follicular</th><td>2-15 mIU/mL</td></tr>
+                <tr><th>FSH, follicular</th><td>3-10 mIU/mL</td></tr>
+                <tr><th>Estradiol, follicular</th><td>20-350 pg/mL</td></tr>
+                <tr><th>Progesterone, luteal</th><td>5-20 ng/mL</td></tr>
+                <tr><th>Prolactin</th><td>&lt;20 ng/mL</td></tr>
+                <tr><th>Testosterone, male</th><td>300-1000 ng/dL</td></tr>
+                <tr><th>Testosterone, female</th><td>15-70 ng/dL</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="workspace">
+          <div class="question-card">
+            <div class="question-toolbar">
+              <span id="questionCounter">Question 0 of 0</span>
+              <span id="questionIdBadge">ID --0000</span>
+              <span id="difficultyBadge">NBME</span>
+            </div>
+            <div class="annotation-toolbar" aria-label="Question annotation tools">
+              <button id="highlightStemBtn" class="annotation-btn highlight-btn" type="button" disabled>Highlight</button>
+              <button id="clearStemHighlightsBtn" class="annotation-btn" type="button" disabled>Clear</button>
+            </div>
+            <p id="stemText" class="stem">
+              Choose a system and topic to generate a practice block.
+            </p>
+            <div id="answerList" class="answer-list" aria-label="Answer choices"></div>
+            <div class="action-row">
+              <button id="submitBtn" class="primary-btn" type="button" disabled>Submit</button>
+              <button id="nextBtn" class="secondary-btn" type="button" disabled>Next</button>
+            </div>
+          </div>
+
+          <aside class="review-panel" aria-label="Explanation panel">
+            <div class="review-header">
+              <span id="reviewStatus">Review</span>
+              <strong id="reviewResult">Not answered</strong>
+            </div>
+            <div id="explanationText" class="explanation">
+              After you answer, the explanation will show the reasoning, the physiology concept, and why the other options are less appropriate.
+            </div>
+            <div class="learning-box">
+              <span>Learning objective</span>
+              <p id="learningObjective">Practice high-yield physiology reasoning.</p>
+            </div>
+            <div class="validation-box">
+              <div class="validation-title">
+                <span>External validation</span>
+                <strong id="validationSummary">Not validated</strong>
+              </div>
+              <label class="validation-field">
+                <span>Endpoint URL</span>
+                <input id="validatorEndpointInput" type="url" placeholder="https://validator.example/api">
+              </label>
+              <div class="validation-actions">
+                <button id="validateLisaBtn" type="button" disabled>LiSA V1.0</button>
+                <button id="validateMedGeminiBtn" type="button" disabled>Med-Gemini 1.5</button>
+              </div>
+              <textarea id="validationPayloadText" aria-label="Validation packet and results" placeholder="Validation packet or imported result"></textarea>
+              <div class="validation-actions">
+                <button id="copyValidationBtn" type="button" disabled>Copy Packet</button>
+                <button id="saveValidationBtn" type="button" disabled>Save Result</button>
+              </div>
+              <p id="validationStatus" class="validation-status">Start or load a question to prepare validation.</p>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js?v=19"></script>
+  </body>
+</html>
