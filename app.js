@@ -1429,13 +1429,11 @@ function buildPdfLines() {
 }
 
 function buildPdfAnswerExplanationLines(question) {
-  const questionTypeNote = buildQuestionTypeNote(question);
   return [
     ...wrapPdfText(`Why the correct answer fits the stem: ${correctAnswerFitText(question)}`, 92),
-    ...wrapPdfText(`Core mechanism: ${question.explanation}`, 92),
-    ...wrapPdfText(`Key clue from the stem: ${keyStemSignal(question)}`, 92),
-    ...wrapPdfText(`Reasoning chain: ${buildMechanismChain(question)}`, 92),
-    ...wrapPdfText(`How to reason it out: ${questionTypeNote} First identify the abnormal or intentionally manipulated variable, then ask which mechanism would produce that exact change. The correct option should explain the cause-and-effect relationship; options that are true in isolation but do not explain the stem should be rejected.`, 92)
+    ...wrapPdfText(`Physiologic mechanism: ${question.explanation}`, 92),
+    ...wrapPdfText(`Key physiologic clue: ${keyStemSignal(question)}`, 92),
+    ...wrapPdfText(`Why the other options are less likely: ${distractorPhysiologySummary(question)}`, 92)
   ];
 }
 
@@ -1641,22 +1639,22 @@ function keyStemSignal(question) {
   return signal.trim();
 }
 
-function buildMechanismChain(question) {
-  if (question.generationType === "vignette") {
-    return "Clinical data -> identify the altered physiologic variable -> apply the governing mechanism -> choose the answer that predicts the expected direction of change.";
-  }
-  return "Concept cue -> identify the relevant variable -> apply the core physiologic rule -> select the option that matches that rule.";
-}
-
-function buildQuestionTypeNote(question) {
-  if (question.generationType === "vignette") {
-    return "This item should be approached by translating the clinical details into a physiologic variable before comparing answer choices.";
-  }
-  return "This item should be approached by naming the core physiologic rule and then matching it to the answer choice.";
-}
-
 function correctAnswerFitText(question) {
-  return `The stem is testing ${question.topic} within ${question.system}. The correct answer is best because it explains the key measured change using the expected physiologic mechanism, not just an associated fact. In single-best-answer format, the best option is the one that accounts for the primary finding and stays consistent with the direction of compensation or dysfunction described in the vignette.`;
+  return `This item tests ${question.topic} physiology within ${question.system}. The correct answer fits because it is the option that directly expresses the physiologic mechanism responsible for the finding in the stem. It preserves the expected relationship between the altered variable, the site of action, and the direction of the physiologic response.`;
+}
+
+function selectedAnswerPhysiologyText(question, selectedIndex, isCorrect) {
+  if (isCorrect) {
+    return "The selected answer is physiologically consistent with the mechanism described in the stem.";
+  }
+
+  const selectedLabel = String.fromCharCode(65 + selectedIndex);
+  const selectedChoice = question.choices[selectedIndex];
+  return `Choice ${selectedLabel}, ${selectedChoice}, is not the best physiologic explanation because it does not account for the same altered variable, site of action, or direction of response as the correct mechanism.`;
+}
+
+function distractorPhysiologySummary(question) {
+  return "The incorrect choices may name real physiologic concepts, but they do not produce the specific variable change described in the stem. They either act at a different site, alter the response in the opposite direction, or explain a related but noncausal finding.";
 }
 
 function buildDistractorReview(question, selectedIndex) {
@@ -1667,29 +1665,23 @@ function buildDistractorReview(question, selectedIndex) {
     .map((item) => {
       const label = String.fromCharCode(65 + item.index);
       const selectedPhrase = item.index === selectedIndex ? " This was the selected option, but" : "";
-      return `<li><strong>${label}.</strong>${selectedPhrase} ${escapeHtml(item.choice)} is less appropriate because it changes the wrong variable, applies the right concept in the wrong direction, or describes a different physiologic site, phase, or compensatory response than the one signaled by the stem.</li>`;
+      return `<li><strong>${label}.</strong>${selectedPhrase} ${escapeHtml(item.choice)} is less appropriate physiologically because it does not explain the primary variable in the stem through the correct mechanism, site of action, or expected direction of change.</li>`;
     })
     .join("");
 }
 
 function buildDetailedReview(question, selectedIndex, isCorrect) {
   const correctLabel = String.fromCharCode(65 + question.answer);
-  const selectedLabel = String.fromCharCode(65 + selectedIndex);
   const correctChoice = question.choices[question.answer];
-  const selectedNote = isCorrect
-    ? "Your selected option matches the physiologic mechanism tested in the stem."
-    : `You selected ${selectedLabel}; that option does not best explain the physiologic pattern in the vignette.`;
-  const questionTypeNote = buildQuestionTypeNote(question);
 
   return `
     <p><strong>${escapeHtml(question.id)} correct answer: ${correctLabel}. ${escapeHtml(correctChoice)}</strong></p>
-    <p><strong>Tested concept:</strong> ${escapeHtml(question.objective)}</p>
-    <p><strong>Why this is correct:</strong> ${escapeHtml(question.explanation)}</p>
+    <p><strong>Physiology tested:</strong> ${escapeHtml(question.objective)}</p>
+    <p><strong>Physiologic mechanism:</strong> ${escapeHtml(question.explanation)}</p>
     <p><strong>Why the correct answer fits the stem:</strong> ${escapeHtml(correctAnswerFitText(question))}</p>
-    <p><strong>Key clue from the stem:</strong> ${escapeHtml(keyStemSignal(question))}</p>
-    <p><strong>Reasoning chain:</strong> ${escapeHtml(buildMechanismChain(question))}</p>
-    <p><strong>How to reason it out:</strong> ${escapeHtml(questionTypeNote)} First identify the abnormal or intentionally manipulated variable, then ask which mechanism would produce that exact change. The correct option should explain the cause-and-effect relationship; options that are true in isolation but do not explain the stem should be rejected.</p>
-    <p><strong>Decision point:</strong> ${escapeHtml(selectedNote)} The correct option is the one that preserves the direction of the physiologic response described by the stem and connects the finding to the tested concept.</p>
+    <p><strong>Key physiologic clue:</strong> ${escapeHtml(keyStemSignal(question))}</p>
+    <p><strong>Your selected answer:</strong> ${escapeHtml(selectedAnswerPhysiologyText(question, selectedIndex, isCorrect))}</p>
+    <p><strong>Why the other options are incorrect:</strong> ${escapeHtml(distractorPhysiologySummary(question))}</p>
     <ul>
       ${buildDistractorReview(question, selectedIndex)}
     </ul>
