@@ -1,6 +1,6 @@
 const STORAGE_KEY = "physioq.questionBank.v6";
 const VALIDATION_STORAGE_KEY = "physioq.validationResults.v1";
-const BANK_VERSION = "2026-06-03-deduplicated-question-bank";
+const BANK_VERSION = "2026-06-03-high-difficulty-unique-bank";
 const BANK_ASSET_URL = `question-bank.json?v=${BANK_VERSION}`;
 const BASE_QUESTIONS_PER_TOPIC = 50;
 const VIGNETTE_QUESTIONS_PER_TOPIC = 50;
@@ -32,7 +32,7 @@ const ADVANCED_VIGNETTE_CONTEXTS = [
   "A 34-year-old patient is seen after starting a new medication that changes receptor signaling. The patient has normal renal and hepatic function. The clinical team asks which cellular or organ-level response should occur first."
 ];
 
-const DIFFICULTY_VALUES = [0.08, 0.14, 0.21, 0.28, 0.35, 0.42, 0.49, 0.56, 0.63, 0.69];
+const DIFFICULTY_VALUES = [0.72, 0.74, 0.76, 0.78, 0.80, 0.82, 0.84, 0.86, 0.89, 0.92];
 
 const VIGNETTE_SERIES_DETAILS = [
   "The first measurement is obtained before any intervention, and the primary variable is stable on repeat sampling.",
@@ -40,6 +40,79 @@ const VIGNETTE_SERIES_DETAILS = [
   "A bedside tracing is reviewed with the learner, and the abnormal phase is marked before the answer choices are shown.",
   "The finding persists after washout and rechallenge, supporting a reproducible physiologic mechanism rather than random variation.",
   "A second teaching group reviews the same mechanism using a related measurement from the same organ system."
+];
+
+const QUESTION_VARIANT_FRAMES = [
+  {
+    conceptLead: "The learner must predict the immediate direction of the physiologic response.",
+    vignetteLead: "The clinical team asks which response best matches the primary physiologic disturbance.",
+    questionLead: "Based on the dominant variable in this setting,",
+    objectiveFocus: "Focus: directional prediction.",
+    explanationFocus: "The key is the expected direction of change produced by the mechanism."
+  },
+  {
+    conceptLead: "A targeted inhibitor is introduced while upstream conditions remain unchanged.",
+    vignetteLead: "A drug effect isolates one step in the pathway while other variables are held constant.",
+    questionLead: "When that step is selectively altered,",
+    objectiveFocus: "Focus: effect of selective inhibition.",
+    explanationFocus: "The correct answer follows from the step that is selectively blocked or enhanced."
+  },
+  {
+    conceptLead: "A tracing or table shows one abnormal variable with otherwise preserved baseline function.",
+    vignetteLead: "The abnormal value is isolated from competing findings, requiring interpretation of the primary variable.",
+    questionLead: "Which physiologic change best accounts for the isolated abnormality?",
+    objectiveFocus: "Focus: interpretation of an isolated abnormal variable.",
+    explanationFocus: "The correct option explains the isolated abnormality without invoking unrelated changes."
+  },
+  {
+    conceptLead: "The same mechanism is tested after a compensatory response begins.",
+    vignetteLead: "A compensatory response is underway, but the original physiologic disturbance remains identifiable.",
+    questionLead: "Which process is most responsible for the compensation?",
+    objectiveFocus: "Focus: compensation and homeostatic response.",
+    explanationFocus: "The mechanism explains how the system compensates for the initiating disturbance."
+  },
+  {
+    conceptLead: "A second measurement is added to distinguish cause from consequence.",
+    vignetteLead: "Two measurements move in a pattern that separates the causal mechanism from a secondary finding.",
+    questionLead: "Which option best identifies the causal physiologic mechanism?",
+    objectiveFocus: "Focus: cause versus consequence.",
+    explanationFocus: "The correct answer identifies the causal step rather than a downstream association."
+  },
+  {
+    conceptLead: "The variable is compared with a nearby pathway that produces a similar but distinct finding.",
+    vignetteLead: "Two plausible mechanisms are compared, but only one matches the site and direction of the observed change.",
+    questionLead: "Which mechanism best distinguishes this finding from a similar pathway?",
+    objectiveFocus: "Focus: physiologic discrimination between similar pathways.",
+    explanationFocus: "The correct answer matches the specific site and direction, whereas the alternatives reflect related pathways."
+  },
+  {
+    conceptLead: "A graph of the response is interpreted after a controlled perturbation.",
+    vignetteLead: "A response curve shifts after a controlled perturbation, and the learner must identify the physiologic basis.",
+    questionLead: "Which mechanism explains the shift in the response curve?",
+    objectiveFocus: "Focus: graph or curve interpretation.",
+    explanationFocus: "The correct mechanism accounts for the observed shift in the physiologic response."
+  },
+  {
+    conceptLead: "A normal reference value is used to identify the altered physiologic process.",
+    vignetteLead: "The relevant value is compared with a reference range, making the altered process the key clue.",
+    questionLead: "Which process explains the deviation from the expected reference pattern?",
+    objectiveFocus: "Focus: reference-range interpretation.",
+    explanationFocus: "The correct answer links the abnormal value to the physiologic process that controls it."
+  },
+  {
+    conceptLead: "The stem asks for the mechanism most proximal to the observed physiologic effect.",
+    vignetteLead: "Several findings are present, but the answer depends on the most proximal physiologic step.",
+    questionLead: "Which proximal mechanism most directly produces the finding?",
+    objectiveFocus: "Focus: proximal mechanism.",
+    explanationFocus: "The correct answer is the nearest causal physiologic step upstream of the finding."
+  },
+  {
+    conceptLead: "An integrated scenario requires matching the site of action to the direction of the response.",
+    vignetteLead: "The vignette combines site, variable, and direction of change to require integrated physiologic reasoning.",
+    questionLead: "Which option best preserves the site-specific direction of the response?",
+    objectiveFocus: "Focus: integrated high-difficulty application.",
+    explanationFocus: "The correct answer integrates the site of action with the expected direction of the response."
+  }
 ];
 
 const VALIDATION_ENGINES = {
@@ -526,29 +599,34 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
   const choices = [concept.correct, ...concept.distractors];
   const rotationSeed = index + topic.length + systemSpec.prefix.length + (variant === "vignette" ? 3 : 0);
   const isVignette = variant === "vignette";
+  const concepts = conceptsForTopic(topic);
+  const variantFrame = QUESTION_VARIANT_FRAMES[Math.floor(index / concepts.length) % QUESTION_VARIANT_FRAMES.length];
+  const questionPrefix = variantFrame.questionLead.endsWith("?")
+    ? variantFrame.questionLead
+    : `${variantFrame.questionLead} ${concept.question}`;
 
   return {
     id,
     system: systemSpec.system,
     topic,
     stem: isVignette
-      ? buildAdvancedVignetteStem(concept, topic, index)
-      : `${STEM_CONTEXTS[Math.floor(index / conceptsForTopic(topic).length) % STEM_CONTEXTS.length]} ${concept.setup} ${concept.question}`,
+      ? buildAdvancedVignetteStem(concept, topic, index, variantFrame, questionPrefix)
+      : `${STEM_CONTEXTS[Math.floor(index / concepts.length) % STEM_CONTEXTS.length]} ${variantFrame.conceptLead} ${concept.setup} ${questionPrefix}`,
     choices: rotateChoices(choices, 0, rotationSeed),
     answer: rotatedAnswer(0, choices.length, rotationSeed),
-    explanation: concept.explanation,
-    objective: concept.objective,
+    explanation: `${concept.explanation} ${variantFrame.explanationFocus}`,
+    objective: `${concept.objective} ${isVignette ? "Applied vignette." : "Focused concept."} ${variantFrame.objectiveFocus}`,
     style: isVignette ? "CAS-like NBME-style applied clinical vignette" : "NBME-style single-best-answer",
     difficultyIndex: isVignette ? DIFFICULTY_VALUES[index % DIFFICULTY_VALUES.length] : 0,
     generationType: isVignette ? "vignette" : "concept"
   };
 }
 
-function buildAdvancedVignetteStem(concept, topic, index) {
+function buildAdvancedVignetteStem(concept, topic, index, variantFrame, questionPrefix) {
   const context = ADVANCED_VIGNETTE_CONTEXTS[index % ADVANCED_VIGNETTE_CONTEXTS.length];
   const data = advancedDataForTopic(topic, index);
   const seriesDetail = VIGNETTE_SERIES_DETAILS[Math.floor(index / ADVANCED_VIGNETTE_CONTEXTS.length) % VIGNETTE_SERIES_DETAILS.length];
-  return `${context} ${seriesDetail} ${data} ${concept.setup} ${concept.question}`;
+  return `${context} ${seriesDetail} ${variantFrame.vignetteLead} ${data} ${concept.setup} ${questionPrefix}`;
 }
 
 function advancedDataForTopic(topic, index) {

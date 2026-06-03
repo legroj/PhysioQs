@@ -14,4 +14,4 @@ The static `question-bank.json` file contains 5,100 generated physiology questio
 
 ## Duplicate Audit
 
-The June 3, 2026 bank update removes exact duplicate stems while preserving 5,100 total questions.
+The June 3, 2026 bank update removes repeated stems and repeated objective-answer variants while preserving 5,100 total questions. Applied vignette questions now use higher projected difficulty values.
