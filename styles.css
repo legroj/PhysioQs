@@ -473,6 +473,23 @@ textarea {
   padding: 24px 28px;
 }
 
+.version-footer {
+  margin: auto 28px 18px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.version-footer strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
 .question-card,
 .review-panel {
   background: var(--panel);
@@ -833,6 +850,10 @@ textarea {
   .topbar,
   .workspace {
     padding: 18px;
+  }
+
+  .version-footer {
+    margin: auto 18px 16px;
   }
 
   .sidebar {

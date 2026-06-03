@@ -1181,6 +1181,7 @@ const copyValidationBtn = document.getElementById("copyValidationBtn");
 const saveValidationBtn = document.getElementById("saveValidationBtn");
 const validationStatus = document.getElementById("validationStatus");
 const validationSummary = document.getElementById("validationSummary");
+const versionStamp = document.getElementById("versionStamp");
 const modeButtons = document.querySelectorAll("[data-mode]");
 
 let mode = "tutor";
@@ -1196,6 +1197,7 @@ let validationResults = {};
 let currentValidationEngine = "lisa";
 
 async function initApp() {
+  renderVersionStamp();
   bankStatus.textContent = "Loading question bank...";
 
   try {
@@ -1209,6 +1211,16 @@ async function initApp() {
     bankStatus.textContent = "Unable to load the question bank.";
     questionTitle.textContent = "Question bank unavailable";
   }
+}
+
+function renderVersionStamp() {
+  const now = new Date();
+  const year = String(now.getFullYear()).slice(-2);
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hour = String(now.getHours()).padStart(2, "0");
+  const minute = String(now.getMinutes()).padStart(2, "0");
+  versionStamp.textContent = `${year}${month}${day} ${hour}${minute}`;
 }
 
 function loadValidationResults() {
