@@ -11,3 +11,7 @@ https://legroj.github.io/PhysioQs/
 ## Included Question Bank
 
 The static `question-bank.json` file contains 5,100 generated physiology questions. The app loads this file first when hosted online and falls back to the built-in generator if the file is unavailable.
+
+## Duplicate Audit
+
+The June 3, 2026 bank update removes exact duplicate stems while preserving 5,100 total questions.

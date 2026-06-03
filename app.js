@@ -1,6 +1,6 @@
 const STORAGE_KEY = "physioq.questionBank.v6";
 const VALIDATION_STORAGE_KEY = "physioq.validationResults.v1";
-const BANK_VERSION = "2026-06-03-online-question-bank";
+const BANK_VERSION = "2026-06-03-deduplicated-question-bank";
 const BANK_ASSET_URL = `question-bank.json?v=${BANK_VERSION}`;
 const BASE_QUESTIONS_PER_TOPIC = 50;
 const VIGNETTE_QUESTIONS_PER_TOPIC = 50;
@@ -33,6 +33,14 @@ const ADVANCED_VIGNETTE_CONTEXTS = [
 ];
 
 const DIFFICULTY_VALUES = [0.08, 0.14, 0.21, 0.28, 0.35, 0.42, 0.49, 0.56, 0.63, 0.69];
+
+const VIGNETTE_SERIES_DETAILS = [
+  "The first measurement is obtained before any intervention, and the primary variable is stable on repeat sampling.",
+  "A repeat measurement after a controlled stimulus shows the same direction of change with a slightly different magnitude.",
+  "A bedside tracing is reviewed with the learner, and the abnormal phase is marked before the answer choices are shown.",
+  "The finding persists after washout and rechallenge, supporting a reproducible physiologic mechanism rather than random variation.",
+  "A second teaching group reviews the same mechanism using a related measurement from the same organ system."
+];
 
 const VALIDATION_ENGINES = {
   lisa: "LiSA V1.0",
@@ -539,7 +547,8 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
 function buildAdvancedVignetteStem(concept, topic, index) {
   const context = ADVANCED_VIGNETTE_CONTEXTS[index % ADVANCED_VIGNETTE_CONTEXTS.length];
   const data = advancedDataForTopic(topic, index);
-  return `${context} ${data} ${concept.setup} ${concept.question}`;
+  const seriesDetail = VIGNETTE_SERIES_DETAILS[Math.floor(index / ADVANCED_VIGNETTE_CONTEXTS.length) % VIGNETTE_SERIES_DETAILS.length];
+  return `${context} ${seriesDetail} ${data} ${concept.setup} ${concept.question}`;
 }
 
 function advancedDataForTopic(topic, index) {
