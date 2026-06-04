@@ -1,6 +1,6 @@
-const STORAGE_KEY = "physioq.questionBank.v8";
+const STORAGE_KEY = "physioq.questionBank.v9";
 const VALIDATION_STORAGE_KEY = "physioq.validationResults.v1";
-const BANK_VERSION = "2026-06-04-nbme-stem-bank-v4";
+const BANK_VERSION = "2026-06-04-concise-review-bank-v5";
 const BANK_ASSET_URL = `question-bank.json?v=${BANK_VERSION}`;
 const BASE_QUESTIONS_PER_TOPIC = 0;
 const VIGNETTE_QUESTIONS_PER_TOPIC = 100;
@@ -674,7 +674,7 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
     stem: `${caseStem} ${leadIn}`,
     choices: rotateChoices(choices, 0, rotationSeed),
     answer: rotatedAnswer(0, choices.length, rotationSeed),
-    explanation: concept.explanation,
+    explanation: conciseConceptExplanation(concept.explanation),
     objective: `${concept.objective} ${isVignette ? "Applied vignette." : "Focused concept."} ${variantFrame.objectiveFocus}`,
     style: isVignette ? "CAS-like NBME-style applied clinical vignette" : "NBME-style single-best-answer",
     difficultyIndex: isVignette ? DIFFICULTY_VALUES[index % DIFFICULTY_VALUES.length] : 0,
@@ -698,6 +698,49 @@ function nbmeLeadIn(question, topic) {
     return "Which of the following physiologic responses is most likely?";
   }
   return question;
+}
+
+function conciseConceptExplanation(explanation) {
+  let cleaned = String(explanation || "")
+    .replace(/\bphysiologic mechanism\b/gi, "mechanism")
+    .replace(/\bsite of action\b/gi, "site")
+    .replace(/\bprimary variable\b/gi, "finding")
+    .replace(/\bexpected direction of (the )?(physiologic )?response\b/gi, "expected change")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const naturalRewrites = [
+    {
+      pattern: /^Afferent constriction reduces renal plasma flow and glomerular hydrostatic pressure, decreasing GFR\.$/i,
+      text: "Less blood enters the glomerulus, so glomerular pressure falls and GFR decreases."
+    },
+    {
+      pattern: /^Acetylcholinesterase terminates acetylcholine signaling\. Inhibition prolongs acetylcholine action\.$/i,
+      text: "Acetylcholine is not broken down quickly, so it remains in the cleft longer and prolongs the end-plate response."
+    },
+    {
+      pattern: /^Isotonic contraction removes fluid from the ECF without changing osmolality, so there is no osmotic water shift into or out of cells\. Plasma protein concentration and hematocrit tend to rise because plasma water is contracted\.$/i,
+      text: "Serum osmolality is unchanged, so water does not shift between ECF and ICF. Plasma water is lost, which raises hematocrit and plasma protein."
+    },
+    {
+      pattern: /^Hypertonic contraction raises ECF osmolality and draws water out of cells, decreasing both ECF and ICF volumes\. Plasma protein concentration rises; hematocrit may rise less or remain near normal because red cells shrink while plasma volume falls\.$/i,
+      text: "ECF osmolality rises, so water leaves cells. Both ECF and ICF volume fall, and plasma protein rises from water loss."
+    }
+  ];
+
+  const rewrite = naturalRewrites.find((item) => item.pattern.test(cleaned));
+  if (rewrite) cleaned = rewrite.text;
+
+  const sentences = splitSentences(cleaned);
+  return sentences.slice(0, 2).join(" ").replace(/\s+/g, " ").trim();
+}
+
+function splitSentences(text) {
+  const protectedText = String(text || "").replace(/(\d)\.(\d)/g, "$1<DECIMAL>$2");
+  return protectedText
+    .split(/(?<=[.!?])\s+(?=[A-Z])/)
+    .map((sentence) => sentence.replaceAll("<DECIMAL>", ".").trim())
+    .filter(Boolean);
 }
 
 function buildAdvancedVignetteStem(concept, topic, index, system) {
@@ -2393,8 +2436,6 @@ function buildPdfLines() {
 function buildPdfAnswerExplanationLines(question) {
   return [
     ...wrapPdfText(`Why the correct answer fits the stem: ${correctAnswerFitText(question)}`, 92),
-    ...wrapPdfText(`Physiologic mechanism: ${question.explanation}`, 92),
-    ...wrapPdfText(`Key physiologic clue: ${keyStemSignal(question)}`, 92),
     ...wrapPdfText(`Why the other options are less likely: ${distractorPhysiologySummary(question)}`, 92)
   ];
 }
@@ -2625,51 +2666,96 @@ function isNextQuestionSameCase() {
 }
 
 function correctAnswerFitText(question) {
-  return `This item tests ${question.topic} physiology within ${question.system}. The correct answer fits because it is the option that directly expresses the physiologic mechanism responsible for the finding in the stem. It preserves the expected relationship between the altered variable, the site of action, and the direction of the physiologic response.`;
+  return concisePhysiologyExplanation(question);
 }
 
 function selectedAnswerPhysiologyText(question, selectedIndex, isCorrect) {
   if (isCorrect) {
-    return "The selected answer is physiologically consistent with the mechanism described in the stem.";
+    return "Your choice follows the same physiologic change shown in the stem.";
   }
 
   const selectedLabel = String.fromCharCode(65 + selectedIndex);
   const selectedChoice = question.choices[selectedIndex];
-  return `Choice ${selectedLabel}, ${selectedChoice}, is not the best physiologic explanation because it does not account for the same altered variable, site of action, or direction of response as the correct mechanism.`;
+  return `Choice ${selectedLabel}, ${selectedChoice}, does not follow from the stem findings. It predicts a different change or depends on a condition that is not shown.`;
 }
 
 function distractorPhysiologySummary(question) {
-  return "The incorrect choices may name real physiologic concepts, but they do not produce the specific variable change described in the stem. They either act at a different site, alter the response in the opposite direction, or explain a related but noncausal finding.";
+  return "The other options either move the variable in the wrong direction or require a finding that is absent from the vignette.";
 }
 
 function buildDistractorReview(question, selectedIndex) {
   return question.choices
     .map((choice, index) => ({ choice, index }))
     .filter((item) => item.index !== question.answer)
-    .slice(0, 4)
+    .filter((item) => item.index === selectedIndex)
     .map((item) => {
       const label = String.fromCharCode(65 + item.index);
-      const selectedPhrase = item.index === selectedIndex ? " This was the selected option, but" : "";
-      return `<li><strong>${label}.</strong>${selectedPhrase} ${escapeHtml(item.choice)} is less appropriate physiologically because it does not explain the primary variable in the stem through the correct mechanism, site of action, or expected direction of change.</li>`;
+      return `<li><strong>${label}.</strong> ${escapeHtml(item.choice)} does not match the physiologic pattern in the stem.</li>`;
     })
     .join("");
+}
+
+function concisePhysiologyExplanation(question) {
+  const explanation = conciseConceptExplanation(question.explanation);
+  const clue = conciseKeyClue(question);
+  if (!clue || !/[0-9]|rises|falls|increases|decreases|increased|decreased|prolonged|reduced|low|high|unchanged/i.test(clue)) {
+    return explanation;
+  }
+  return `${explanation} In this stem, the key clue is: ${clue}`;
+}
+
+function conciseKeyClue(question) {
+  const stem = String(question.caseStem || question.stem || "");
+  const lowerStem = stem.toLowerCase();
+  if (question.topic === "Body Volume") {
+    if (lowerStem.includes("osmolality is 290") && lowerStem.includes("hematocrit has increased") && lowerStem.includes("protein has increased")) {
+      return "unchanged osmolality with increased hematocrit and plasma protein.";
+    }
+    if (lowerStem.includes("osmolality is 289") && lowerStem.includes("hematocrit has decreased")) {
+      return "unchanged osmolality with dilution of hematocrit and plasma protein.";
+    }
+    if (lowerStem.includes("osmolality is 312") || lowerStem.includes("osmolality is 326")) {
+      return "increased osmolality, which pulls water out of cells.";
+    }
+    if (lowerStem.includes("osmolality is 258") || lowerStem.includes("osmolality is 262")) {
+      return "decreased osmolality, which drives water into cells.";
+    }
+  }
+  if (question.topic === "Glomerular Filtration" && lowerStem.includes("renal plasma flow falls")) {
+    return "creatinine rises and renal plasma flow falls after NSAID use.";
+  }
+  if (question.topic === "Synaptic Transmission" && lowerStem.includes("prolonged end-plate current")) {
+    return "normal presynaptic release with a prolonged end-plate current.";
+  }
+
+  const sentences = splitSentences(stem);
+  const measured = sentences
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => !/^The chart includes\b/i.test(sentence))
+    .filter((sentence) => !/^The clinician reviews\b/i.test(sentence))
+    .filter((sentence) => !/^The medication list\b/i.test(sentence))
+    .filter((sentence) => /\b(mEq\/L|mOsm|mm Hg|mg\/dL|creatinine|GFR|renal plasma flow|hematocrit|protein|osmolality|pressure|flow|pH|PaCO2|bicarbonate|potassium|sodium|urine|ADH|renin|aldosterone|glucose|insulin|glucagon|ECG|volume|compliance|resistance|prolonged|falls|rises|decreases|increases)\b/i.test(sentence));
+  const clue = measured[measured.length - 1] || sentences[sentences.length - 1] || "";
+  const normalized = clue.replace(/\s+/g, " ").trim();
+  if (/^(The chart includes|The clinician reviews|The medication list)/i.test(normalized)) return "";
+  if (normalized.length > 170) {
+    return `${normalized.slice(0, 167).trim()}...`;
+  }
+  return normalized;
 }
 
 function buildDetailedReview(question, selectedIndex, isCorrect) {
   const correctLabel = String.fromCharCode(65 + question.answer);
   const correctChoice = question.choices[question.answer];
+  const selectedDistractor = buildDistractorReview(question, selectedIndex);
+  const selectedDistractorBlock = selectedDistractor ? `<ul>${selectedDistractor}</ul>` : "";
 
   return `
     <p><strong>${escapeHtml(question.id)} correct answer: ${correctLabel}. ${escapeHtml(correctChoice)}</strong></p>
-    <p><strong>Physiology tested:</strong> ${escapeHtml(question.objective)}</p>
-    <p><strong>Physiologic mechanism:</strong> ${escapeHtml(question.explanation)}</p>
-    <p><strong>Why the correct answer fits the stem:</strong> ${escapeHtml(correctAnswerFitText(question))}</p>
-    <p><strong>Key physiologic clue:</strong> ${escapeHtml(keyStemSignal(question))}</p>
-    <p><strong>Your selected answer:</strong> ${escapeHtml(selectedAnswerPhysiologyText(question, selectedIndex, isCorrect))}</p>
-    <p><strong>Why the other options are incorrect:</strong> ${escapeHtml(distractorPhysiologySummary(question))}</p>
-    <ul>
-      ${buildDistractorReview(question, selectedIndex)}
-    </ul>
+    <p><strong>Why it fits:</strong> ${escapeHtml(correctAnswerFitText(question))}</p>
+    <p><strong>Your answer:</strong> ${escapeHtml(selectedAnswerPhysiologyText(question, selectedIndex, isCorrect))}</p>
+    <p><strong>Other options:</strong> ${escapeHtml(distractorPhysiologySummary(question))}</p>
+    ${selectedDistractorBlock}
   `;
 }
 
