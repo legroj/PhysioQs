@@ -1,6 +1,6 @@
-const STORAGE_KEY = "physioq.questionBank.v9";
+const STORAGE_KEY = "physioq.questionBank.v11";
 const VALIDATION_STORAGE_KEY = "physioq.validationResults.v1";
-const BANK_VERSION = "2026-06-04-concise-review-bank-v5";
+const BANK_VERSION = "2026-06-04-independent-nbme-bank-v7";
 const BANK_ASSET_URL = `question-bank.json?v=${BANK_VERSION}`;
 const BASE_QUESTIONS_PER_TOPIC = 0;
 const VIGNETTE_QUESTIONS_PER_TOPIC = 100;
@@ -284,7 +284,7 @@ const TOPIC_CONCEPTS = {
     c("Voltage-gated sodium channels in an axon are blocked.", "Which phase is affected most directly?", "Rapid depolarization", ["Repolarization from potassium efflux", "Afterhyperpolarization", "Resting potential generation", "Synaptic vesicle recycling"], "The rapid upstroke of an action potential depends on sodium influx through voltage-gated sodium channels.", "Match voltage-gated sodium channels with phase 0 depolarization."),
     c("Voltage-gated potassium channels open more slowly than sodium channels.", "Which action potential feature is produced by this delayed opening?", "Repolarization and afterhyperpolarization", ["Initial threshold detection only", "Synaptic vesicle docking", "Resting sodium leak", "Calcium release from troponin"], "Delayed potassium channel opening allows potassium efflux, repolarizing the membrane and often causing afterhyperpolarization.", "Explain potassium channel contribution to action potential termination."),
     c("A myelinated axon loses myelin in one segment.", "Which change explains reduced conduction velocity?", "Reduced saltatory conduction", ["Increased membrane resistance", "Decreased membrane capacitance", "Increased internodal current spread", "Increased axonal diameter"], "Myelin increases membrane resistance and decreases capacitance, enabling rapid saltatory conduction between nodes.", "Explain how myelin increases conduction velocity."),
-    c("The axon diameter is increased while myelination is unchanged.", "Which effect is expected?", "Increased conduction velocity", ["Decreased conduction velocity", "Loss of all action potentials", "Decreased intracellular resistance is impossible", "Immediate synaptic failure"], "Larger axon diameter lowers internal resistance and increases conduction velocity.", "Relate axon diameter to conduction velocity."),
+    c("The axon diameter is increased while myelination is unchanged.", "Which effect is expected?", "Increased conduction velocity", ["Decreased conduction velocity", "Increased axoplasmic resistance", "Increased membrane capacitance", "Reduced length constant"], "Larger axon diameter lowers internal resistance and increases conduction velocity.", "Relate axon diameter to conduction velocity."),
     c("A second stimulus occurs during the absolute refractory period.", "Why does it fail to generate another action potential?", "Voltage-gated sodium channels are inactivated", ["Potassium channels are permanently closed", "The sodium-potassium ATPase has stopped", "The membrane lacks chloride channels", "Calcium is absent from extracellular fluid"], "During the absolute refractory period, voltage-gated sodium channels are inactivated and cannot reopen immediately.", "Explain the ionic basis of the absolute refractory period.")
   ],
   "Synaptic Transmission": [
@@ -653,8 +653,6 @@ function conceptsForTopic(topic) {
 }
 
 function createQuestion(systemSpec, topic, concept, id, index, variant) {
-  const choices = [concept.correct, ...concept.distractors];
-  const rotationSeed = index + topic.length + systemSpec.prefix.length + (variant === "vignette" ? 3 : 0);
   const isVignette = variant === "vignette";
   const concepts = conceptsForTopic(topic);
   const variantIndex = Math.floor(index / concepts.length) % QUESTION_VARIANT_FRAMES.length;
@@ -663,7 +661,10 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
     ? buildAdvancedVignetteStem(concept, topic, index, systemSpec.system)
     : `${STEM_CONTEXTS[Math.floor(index / concepts.length) % STEM_CONTEXTS.length]} ${concept.setup}`;
   const leadIn = nbmeLeadIn(concept.question, topic);
-  const caseSequence = isVignette ? buildCaseSequence(systemSpec, topic, index, concepts.length) : null;
+  const caseSequence = null;
+
+  const sorted = alphabetizedChoices(concept.correct, concept.distractors);
+  const explanation = detailedConceptExplanation(concept.explanation);
 
   return {
     id,
@@ -672,32 +673,66 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
     caseStem,
     leadIn,
     stem: `${caseStem} ${leadIn}`,
-    choices: rotateChoices(choices, 0, rotationSeed),
-    answer: rotatedAnswer(0, choices.length, rotationSeed),
-    explanation: conciseConceptExplanation(concept.explanation),
+    choices: sorted.choices,
+    answer: sorted.answer,
+    explanation,
+    choiceExplanations: buildChoiceExplanations(sorted.choices, sorted.answer, concept, topic),
     objective: `${concept.objective} ${isVignette ? "Applied vignette." : "Focused concept."} ${variantFrame.objectiveFocus}`,
-    style: isVignette ? "CAS-like NBME-style applied clinical vignette" : "NBME-style single-best-answer",
+    style: isVignette ? "NBME-style independent applied clinical vignette" : "NBME-style single-best-answer",
     difficultyIndex: isVignette ? DIFFICULTY_VALUES[index % DIFFICULTY_VALUES.length] : 0,
     generationType: isVignette ? "vignette" : "concept",
     caseSequence
   };
 }
 
+function alphabetizedChoices(correct, distractors) {
+  const rows = [correct, ...distractors].map((text, originalIndex) => ({
+    text,
+    isCorrect: originalIndex === 0
+  }));
+  rows.sort((a, b) => a.text.localeCompare(b.text, "en", { sensitivity: "base" }));
+  return {
+    choices: rows.map((row) => row.text),
+    answer: rows.findIndex((row) => row.isCorrect)
+  };
+}
+
 function nbmeLeadIn(question, topic) {
   const normalized = question.trim().toLowerCase();
-  if (normalized === "which effect is expected?" || normalized === "which effect is most likely?") {
-    if (topic === "Glomerular Filtration") {
-      return "Which of the following is the most likely change in glomerular filtration?";
-    }
-    if (topic === "Body Volume") {
-      return "Which of the following is the most likely body-fluid compartment pattern after equilibration?";
-    }
-    return "Which of the following is the most likely physiologic consequence of these findings?";
+  if (topic === "Body Volume") {
+    return "Which of the following body-fluid changes best explains the combined laboratory findings after equilibration?";
   }
-  if (normalized === "which physiologic response is most likely?") {
-    return "Which of the following physiologic responses is most likely?";
+  if (topic === "Glomerular Filtration") {
+    return "Which of the following changes best accounts for the patient's clearance findings and change in kidney function?";
   }
-  return question;
+  if (topic === "Action Potential") {
+    return "Which of the following changes best accounts for the nerve conduction finding?";
+  }
+  if (topic.includes("Acid-Base")) {
+    return "Which of the following mechanisms best explains the acid-base pattern in this patient?";
+  }
+  if (topic.includes("Electrocardiography") || topic.includes("Cardiac Cycle")) {
+    return "Which of the following mechanisms best explains the relationship between the tracing and the clinical finding?";
+  }
+  if (topic.includes("Mechanics") || topic.includes("Contraction") || topic.includes("Coupling")) {
+    return "Which of the following processes best accounts for the measured force or calcium-handling pattern?";
+  }
+  if (topic.includes("Transport") || topic.includes("Tubular") || topic.includes("Absorption") || topic.includes("Secretion")) {
+    return "Which of the following mechanisms best explains the measured transport or secretory finding?";
+  }
+  if (topic.includes("Endocrine") || topic.includes("Thyroid") || topic.includes("Adrenal") || topic.includes("Glucose") || topic.includes("Calcium") || topic.includes("Reproductive")) {
+    return "Which of the following mechanisms best explains the hormone pattern and target-organ response?";
+  }
+  if (topic.includes("Respiratory") || topic.includes("Gas") || topic.includes("Oxygen") || topic.includes("Ventilation") || topic.includes("V/Q")) {
+    return "Which of the following mechanisms best explains the respiratory measurements in this patient?";
+  }
+  if (topic.includes("Synaptic") || topic.includes("Potential") || topic.includes("Excitable")) {
+    return "Which of the following mechanisms best explains the electrophysiologic finding?";
+  }
+  if (normalized.includes("which") || normalized.includes("what") || normalized.includes("why") || normalized.includes("how")) {
+    return "Which of the following mechanisms best explains the clinical and laboratory findings?";
+  }
+  return "Which of the following mechanisms best explains the clinical and laboratory findings?";
 }
 
 function conciseConceptExplanation(explanation) {
@@ -735,6 +770,64 @@ function conciseConceptExplanation(explanation) {
   return sentences.slice(0, 2).join(" ").replace(/\s+/g, " ").trim();
 }
 
+function detailedConceptExplanation(explanation) {
+  const concise = conciseConceptExplanation(explanation);
+  const sentences = splitSentences(String(explanation || ""));
+  const extra = sentences
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence && !concise.includes(sentence))
+    .slice(0, 1)
+    .join(" ");
+  return [concise, extra].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+}
+
+function buildChoiceExplanations(choices, answerIndex, concept, topic) {
+  const correctChoice = choices[answerIndex];
+  const correctExplanation = detailedConceptExplanation(concept.explanation);
+  return choices.map((choice, index) => {
+    if (index === answerIndex) {
+      return `Correct. ${correctExplanation}`;
+    }
+    return incorrectChoiceExplanation(choice, correctChoice, topic, concept);
+  });
+}
+
+function incorrectChoiceExplanation(choice, correctChoice, topic, concept) {
+  const lowerChoice = String(choice).toLowerCase();
+  const lowerCorrect = String(correctChoice).toLowerCase();
+
+  if (oppositeDirection(lowerChoice, lowerCorrect)) {
+    return `Incorrect. This predicts the opposite direction of the change supported by the vignette. The stem findings fit ${correctChoice}.`;
+  }
+  if (unrelatedExtreme(lowerChoice)) {
+    return `Incorrect. This option is too absolute or biologically unlikely in the clinical context provided. The measured findings are better explained by ${correctChoice}.`;
+  }
+  if (sameSystemDifferentProcess(lowerChoice, topic)) {
+    return `Incorrect. This is a plausible ${topic} concept, but it would require a different pattern of findings than the one described. The vignette points to ${correctChoice}.`;
+  }
+  return `Incorrect. This choice does not account for the timing and measured pattern in the stem. The expected physiologic result is ${correctChoice}.`;
+}
+
+function oppositeDirection(choice, correct) {
+  return (
+    (choice.includes("increased") && correct.includes("decreased")) ||
+    (choice.includes("decreased") && correct.includes("increased")) ||
+    (choice.includes("hyperpolarization") && correct.includes("depolarization")) ||
+    (choice.includes("depolarization") && correct.includes("hyperpolarization")) ||
+    (choice.includes("dilation") && correct.includes("constriction")) ||
+    (choice.includes("constriction") && correct.includes("dilation"))
+  );
+}
+
+function unrelatedExtreme(choice) {
+  return /\b(all|complete|permanent|zero|only|impossible|always|never|mandatory)\b/i.test(choice);
+}
+
+function sameSystemDifferentProcess(choice, topic) {
+  const topicWords = topic.toLowerCase().split(/[^a-z]+/).filter((word) => word.length > 4);
+  return topicWords.some((word) => choice.includes(word));
+}
+
 function splitSentences(text) {
   const protectedText = String(text || "").replace(/(\d)\.(\d)/g, "$1<DECIMAL>$2");
   return protectedText
@@ -744,35 +837,207 @@ function splitSentences(text) {
 }
 
 function buildAdvancedVignetteStem(concept, topic, index, system) {
-  const setting = nbmeClinicalCaseForSystem(system, topic, index, concept);
-  const detail = topic === "Body Volume" ? "" : ` ${topicClinicalMeasurementContext(topic)} ${nbmeCaseDetail(topic, index)}`;
-  const finding = nbmeAppliedFindingForConcept(concept, topic, index);
-  return `${setting}${detail} ${finding}`;
+  return buildExtraHighClinicalStem(concept, topic, index, system);
+}
+
+function buildExtraHighClinicalStem(concept, topic, index, system) {
+  const opening = clinicalOpening(system, topic, index, concept);
+  const timing = clinicalTimingDetail(index);
+  const history = clinicalHistory(system, topic, index, concept);
+  const exam = clinicalExam(system, topic, index);
+  const distractor = clinicalDistractor(index);
+  const finding = clinicalFinding(concept, topic, index);
+  return [opening, timing, history, exam, distractor, finding]
+    .map((part) => String(part || "").trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function clinicalTimingDetail(index) {
+  const hours = 4 + index;
+  if (hours < 48) return `The current episode began ${hours} hours ago.`;
+  const days = Math.round(hours / 24);
+  return `The current episode began ${days} days ago.`;
+}
+
+function clinicalOpening(system, topic, index, concept) {
+  const text = `${topic} ${concept.setup} ${concept.correct} ${concept.explanation} ${concept.objective}`.toLowerCase();
+  const settings = [
+    "in the emergency department",
+    "in an outpatient clinic",
+    "on the medical ward",
+    "during a preoperative evaluation",
+    "in a physiology consultation service"
+  ];
+  const setting = settings[index % settings.length];
+
+  if (system === "Cardiovascular") {
+    return `A ${58 + (index % 18)}-year-old ${index % 2 ? "woman" : "man"} is seen ${setting} for exertional dyspnea and episodic lightheadedness.`;
+  }
+  if (system === "Respiratory") {
+    return `A ${32 + (index % 35)}-year-old ${index % 2 ? "woman" : "man"} is evaluated ${setting} for shortness of breath.`;
+  }
+  if (system === "Renal") {
+    return `A ${24 + (index % 55)}-year-old ${index % 2 ? "woman" : "man"} is evaluated ${setting} for a change in urine output or kidney function.`;
+  }
+  if (system === "Reproductive & Endocrine") {
+    return `A ${16 + (index % 48)}-year-old ${index % 2 ? "woman" : "man"} is seen ${setting} for fatigue, weight change, pubertal or reproductive concerns, or abnormal glucose regulation.`;
+  }
+  if (system === "Gastrointestinal") {
+    return `A ${22 + (index % 50)}-year-old ${index % 2 ? "woman" : "man"} is evaluated ${setting} for postprandial abdominal symptoms or abnormal stools.`;
+  }
+  if (system === "Integrated Systems") {
+    return `A ${28 + (index % 42)}-year-old ${index % 2 ? "woman" : "man"} is evaluated ${setting} after an acute physiologic stressor involving more than one organ system.`;
+  }
+  if (topic === "Action Potential") {
+    return `A ${18 + (index % 50)}-year-old ${index % 2 ? "woman" : "man"} is evaluated in a neurology clinic for intermittent paresthesias and delayed nerve conduction.`;
+  }
+  if (topic.includes("Mechanics") || topic.includes("Contraction") || topic.includes("Coupling")) {
+    return `A ${19 + (index % 47)}-year-old ${index % 2 ? "woman" : "man"} is evaluated ${setting} for exertional muscle cramps and reduced force generation.`;
+  }
+  if (text.includes("neuromuscular") || text.includes("acetylcholine") || text.includes("botulinum")) {
+    return `A ${19 + (index % 47)}-year-old ${index % 2 ? "woman" : "man"} is evaluated ${setting} for fluctuating weakness and fatigability.`;
+  }
+  return `A ${18 + (index % 50)}-year-old ${index % 2 ? "woman" : "man"} is evaluated ${setting} for episodic weakness or sensory symptoms.`;
+}
+
+function clinicalHistory(system, topic, index, concept) {
+  const text = `${topic} ${concept.setup} ${concept.correct} ${concept.explanation} ${concept.objective}`.toLowerCase();
+  if (topic === "Action Potential") {
+    return "Symptoms are brief and reproducible during nerve stimulation testing; there is no recent toxin exposure or electrolyte disturbance.";
+  }
+  if (text.includes("nsaid") || text.includes("afferent")) {
+    return "He recently started taking ibuprofen several times daily for knee pain after a recreational basketball injury.";
+  }
+  if (text.includes("diarrhea") || (topic === "Body Volume" && text.includes("isotonic contraction"))) {
+    return "The symptoms began after several hours of watery diarrhea; the patient has not taken diuretics or received intravenous fluids.";
+  }
+  if (text.includes("acetylcholinesterase")) {
+    return "Symptoms began after pesticide exposure while working in a garden shed, and the patient reports excess salivation and muscle twitching.";
+  }
+  if (text.includes("botulinum")) {
+    return "Symptoms began 24 hours after eating home-preserved food, followed by diplopia and descending weakness.";
+  }
+  if (text.includes("glucagon") || text.includes("fasting")) {
+    return "Symptoms occur after an overnight fast and improve after eating; there is no history of bariatric surgery.";
+  }
+  if (text.includes("surfactant")) {
+    return "The patient was born prematurely and developed grunting respirations shortly after delivery.";
+  }
+  if (text.includes("baroreceptor") || text.includes("standing")) {
+    return "Symptoms occur within seconds of standing and improve when the patient lies down.";
+  }
+  if (system === "Renal") {
+    return "The medication list, recent fluid intake, and timing of urine collection are reviewed before treatment is started.";
+  }
+  if (system === "Respiratory") {
+    return "The symptoms worsen with exertion; there is no chest pain, hemoptysis, or recent surgery.";
+  }
+  if (system === "Cardiovascular") {
+    return "The symptoms are worse with exertion; there is no fever, pleuritic chest pain, or recent immobilization.";
+  }
+  if (system === "Gastrointestinal") {
+    return "Symptoms are most noticeable after meals, and the patient has had no recent travel or antibiotic exposure.";
+  }
+  if (system === "Reproductive & Endocrine") {
+    return "The clinician reviews medication use, recent weight change, and timing of symptoms relative to meals or the menstrual cycle.";
+  }
+  return "Symptoms worsen after exertion and improve with rest; there is no sensory loss or fever.";
+}
+
+function clinicalExam(system, topic, index) {
+  const exams = {
+    Cardiovascular: [
+      "Blood pressure is 118/74 mm Hg, pulse is 92/min, and cardiac auscultation reveals no new murmur.",
+      "Jugular venous pressure is normal, lungs are clear, and there is no peripheral edema.",
+      "The pulse is regular, capillary refill is normal, and oxygen saturation is 98% on room air."
+    ],
+    Respiratory: [
+      "Respirations are mildly labored, oxygen saturation is 94% on room air, and cardiac examination is normal.",
+      "There are scattered expiratory wheezes without crackles or peripheral edema.",
+      "The patient speaks in full sentences, and there is no cyanosis or clubbing."
+    ],
+    Renal: [
+      "Blood pressure is 132/78 mm Hg, mucous membranes are moist, and there is no peripheral edema.",
+      "The abdomen is soft without suprapubic tenderness, and there is no costovertebral angle tenderness.",
+      "Cardiopulmonary examination is normal, and the bladder is not distended."
+    ],
+    "Reproductive & Endocrine": [
+      "The thyroid is nontender, skin is warm, and there is no tremor.",
+      "Body mass index is 27 kg/m2, and the remainder of the physical examination is unremarkable.",
+      "There is no visual field deficit, galactorrhea, or peripheral edema."
+    ],
+    Gastrointestinal: [
+      "The abdomen is soft with mild epigastric discomfort and no rebound tenderness.",
+      "Bowel sounds are present, and there is no scleral icterus or hepatosplenomegaly.",
+      "Rectal examination shows no gross blood, and vital signs are stable."
+    ]
+  };
+  const pool = exams[system] || [
+    "Neurologic examination shows normal sensation and symmetric reflexes between episodes.",
+    "Mental status is normal, cranial nerves are intact, and there is no fever.",
+    "Strength is mildly reduced during symptoms but returns toward baseline after rest."
+  ];
+  return pool[index % pool.length];
+}
+
+function clinicalDistractor(index) {
+  const distractors = [
+    "The patient takes a daily multivitamin.",
+    "Family history is notable for hypertension in one parent.",
+    "The patient drinks coffee most mornings.",
+    "A remote appendectomy is noted in the surgical history.",
+    "The patient received an influenza vaccine 4 months ago."
+  ];
+  return distractors[index % distractors.length];
+}
+
+function clinicalFinding(concept, topic, index) {
+  const finding = topic === "Body Volume"
+    ? `${bodyVolumeObservationDetail(index)} ${integratedClueForConcept(concept, topic, index)}`
+    : appliedClinicalCueForConcept(concept, topic, index);
+  return clinicalizeFinding(finding);
+}
+
+function clinicalizeFinding(finding) {
+  return String(finding || "")
+    .replace(/^The chart includes .*?\.\s*/i, "")
+    .replace(/^The clinician reviews .*?\.\s*/i, "")
+    .replace(/^During .*?testing,\s*/i, "Testing shows that ")
+    .replace(/^In an .*?assay,\s*/i, "Laboratory testing shows that ")
+    .replace(/^Cultured cells /i, "A cell sample ")
+    .replace(/^A marker is infused/i, "Clearance testing uses a marker that is infused")
+    .replace(/A tracing and paired laboratory value are obtained during the same clinical event\./gi, "A same-visit tracing is interpreted with the relevant laboratory value.")
+    .replace(/The study report lists baseline and same-day values for the measured variable\./gi, "Baseline and current values show the abnormal measurement during symptoms.")
+    .replace(/The clinical note documents the stimulus, timing, vital signs, and one relevant laboratory value\./gi, "Vital signs are stable when the stimulus and relevant laboratory value are recorded.")
+    .replace(/A table compares the measured variable with an adjacent physiologic value from the same organ system\./gi, "The measured value changes while an adjacent physiologic variable remains near baseline.")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function topicClinicalMeasurementContext(topic) {
   const contexts = {
-    "Resting Membrane Potential": "The chart includes resting voltage and ion-gradient measurements from the symptomatic interval.",
-    "Action Potential": "The chart includes action-potential upstroke, refractory-period, or conduction measurements from the symptomatic interval.",
-    "Synaptic Transmission": "The chart includes presynaptic release and postsynaptic potential measurements from the same stimulation protocol.",
-    "Transport Mechanisms": "The chart includes transporter flux data with ATP status, ion gradients, and substrate concentration documented.",
-    "Excitable Cells": "The chart includes excitability measurements from nerve, skeletal muscle, smooth muscle, or cardiac pacemaker cells.",
-    "Mechanics of Contraction": "The chart includes muscle length, load, tension, and timing of stimulation during the symptomatic episode.",
-    "Excitation-Contraction Coupling": "The chart includes membrane excitation, calcium handling, and force generation measurements.",
-    "Glomerular Filtration": "The chart includes renal plasma flow, filtration markers, and glomerular pressure estimates.",
-    "Tubular Electrolyte Handling": "The chart includes urine electrolytes, segment-specific transporter effects, and paired serum values.",
-    "Urine Concentration Mechanism": "The chart includes plasma osmolality, urine osmolality, ADH activity, and medullary gradient data.",
-    "Volume Regulation": "The chart includes effective arterial volume, urine sodium, renin, aldosterone, and ADH measurements.",
-    "Renal Acid-Base Physiology": "The chart includes arterial blood gas values, serum electrolytes, urine pH, and net acid excretion.",
-    "Cardiovascular & Respiratory": "The chart includes cardiac output, arterial oxygen content, ventilation, and pulmonary perfusion measurements.",
-    "Renal Cardiovascular": "The chart includes renal perfusion, arterial pressure, RAAS activity, and urinary sodium handling.",
-    "Renal & Acid-Base": "The chart includes arterial blood gas values, serum electrolytes, and renal acid-excretion measurements.",
-    "Endocrine & Metabolism": "The chart includes glucose, insulin, glucagon, cortisol, ketones, and substrate-use measurements.",
-    "Neuro-Endocrine Integration": "The chart includes autonomic tone, hypothalamic-pituitary signaling, and target-organ hormone responses.",
-    "GI & Autonomic System": "The chart includes autonomic input, motility, secretion, and mucosal blood-flow measurements.",
-    "Multisystem Homeostasis": "The chart includes cardiovascular, renal, endocrine, and metabolic measurements from early compensation."
+    "Resting Membrane Potential": "Electrophysiologic testing during symptoms measures resting voltage and relevant ion gradients.",
+    "Action Potential": "Nerve testing measures the action-potential upstroke, refractory period, and conduction velocity.",
+    "Synaptic Transmission": "Neuromuscular testing measures presynaptic release and postsynaptic end-plate responses.",
+    "Transport Mechanisms": "Laboratory testing measures transporter flux while ATP status, ion gradients, and substrate concentration are documented.",
+    "Excitable Cells": "Cellular testing measures excitability in nerve, skeletal muscle, smooth muscle, or cardiac pacemaker tissue.",
+    "Mechanics of Contraction": "Muscle testing measures length, load, tension, and timing of stimulation during symptoms.",
+    "Excitation-Contraction Coupling": "Muscle testing measures membrane excitation, calcium handling, and force generation.",
+    "Glomerular Filtration": "Renal testing measures renal plasma flow, filtration markers, and glomerular pressure estimates.",
+    "Tubular Electrolyte Handling": "Urine electrolytes, segment-specific transporter effects, and paired serum values are obtained.",
+    "Urine Concentration Mechanism": "Plasma osmolality, urine osmolality, ADH activity, and medullary gradient data are obtained.",
+    "Volume Regulation": "Effective arterial volume, urine sodium, renin, aldosterone, and ADH are measured together.",
+    "Renal Acid-Base Physiology": "Arterial blood gas values, serum electrolytes, urine pH, and net acid excretion are measured.",
+    "Cardiovascular & Respiratory": "Cardiac output, arterial oxygen content, ventilation, and pulmonary perfusion are measured during symptoms.",
+    "Renal Cardiovascular": "Renal perfusion, arterial pressure, RAAS activity, and urinary sodium handling are measured together.",
+    "Renal & Acid-Base": "Arterial blood gas values, serum electrolytes, and renal acid-excretion measurements are obtained.",
+    "Endocrine & Metabolism": "Glucose, insulin, glucagon, cortisol, ketones, and substrate use are measured during symptoms.",
+    "Neuro-Endocrine Integration": "Autonomic tone, hypothalamic-pituitary signaling, and target-organ hormone responses are measured.",
+    "GI & Autonomic System": "Autonomic input, motility, secretion, and mucosal blood flow are assessed after a meal.",
+    "Multisystem Homeostasis": "Cardiovascular, renal, endocrine, and metabolic responses are measured during early compensation."
   };
-  return contexts[topic] || `The chart includes ${topic.toLowerCase()} measurements from the same clinical encounter.`;
+  return contexts[topic] || `Focused ${topic.toLowerCase()} measurements are obtained during the same clinical encounter.`;
 }
 
 function nbmeCaseDetail(topic, index) {
@@ -895,6 +1160,9 @@ function appliedClinicalCueForConcept(concept, topic, index) {
   if (text.includes("voltage-gated sodium") || text.includes("rapid depolarization")) {
     return "A nerve recording shows that threshold is reached, but the upstroke amplitude depends on the fraction of available fast sodium channels.";
   }
+  if (text.includes("axon diameter")) {
+    return "Nerve conduction testing compares two intact myelinated axons; the larger axon conducts the impulse faster while myelin thickness is unchanged.";
+  }
   if (text.includes("myelin") || text.includes("saltatory")) {
     return "Nerve conduction testing shows delayed impulse propagation across a demyelinated segment with increased current leak and loss of saltatory conduction.";
   }
@@ -906,6 +1174,48 @@ function appliedClinicalCueForConcept(concept, topic, index) {
       return "A membrane recording shows chloride equilibrium potential is close to the resting potential, and opening the conductance stabilizes the cell below threshold.";
     }
     return "An inhibitory input increases postsynaptic chloride conductance, and the membrane potential moves closer to the chloride equilibrium potential during the recording.";
+  }
+  if (text.includes("left ventricular pressure rises") || text.includes("isovolumetric contraction")) {
+    return "A pressure-volume tracing shows rising left ventricular pressure while ventricular volume is unchanged and both the mitral and aortic valves are closed.";
+  }
+  if (text.includes("aortic valve closes") || text.includes("s2")) {
+    return "A phonocardiogram shows a high-frequency sound immediately after ventricular ejection, coinciding with closure of the semilunar valves.";
+  }
+  if (text.includes("mitral valve opens") || text.includes("rapid ventricular filling")) {
+    return "After ventricular pressure falls below left atrial pressure, the mitral valve opens and ventricular volume rises rapidly with little early change in pressure.";
+  }
+  if (text.includes("arteriole dilates") || text.includes("systemic vascular resistance")) {
+    return "Local metabolite accumulation in active tissue is followed by arteriolar dilation and an increase in downstream blood flow.";
+  }
+  if (text.includes("vessel radius") || text.includes("poiseuille")) {
+    return "A narrowed arteriolar segment has a much smaller radius while blood viscosity and vessel length are unchanged.";
+  }
+  if (text.includes("blood viscosity")) {
+    return "Hematocrit is increased, blood viscosity rises, and a higher pressure gradient is required to maintain the same flow.";
+  }
+  if (text.includes("flow through a vessel") || text.includes("pressure gradient")) {
+    return "The pressure difference across a vascular bed and the calculated resistance are provided to determine flow.";
+  }
+  if (text.includes("increased compliance")) {
+    return "A venous segment accommodates a larger volume with only a small rise in pressure.";
+  }
+  if (text.includes("contractility") || text.includes("end-systolic")) {
+    return "After an inotropic drug is started, the pressure-volume loop shows a lower end-systolic volume at the same preload and afterload.";
+  }
+  if (text.includes("optimal sarcomere") || text.includes("actin-myosin overlap")) {
+    return "A muscle fiber is stimulated at several lengths; active tension is greatest when actin and myosin overlap without excessive filament crowding.";
+  }
+  if (text.includes("atp binding to myosin") || text.includes("detachment of myosin")) {
+    return "After ATP depletion, myosin remains tightly bound to actin and relaxation is delayed despite cytosolic calcium falling.";
+  }
+  if (text.includes("fixed length") || text.includes("isometric")) {
+    return "During testing, muscle tension rises while the muscle is held at a constant length.";
+  }
+  if (text.includes("constant load") || text.includes("isotonic")) {
+    return "During testing, the muscle shortens while lifting the same external load.";
+  }
+  if (text.includes("repeated stimuli") || text.includes("wave summation")) {
+    return "Repeated stimuli arrive before relaxation is complete, and peak force increases with each stimulus.";
   }
   if (text.includes("frank-starling") || text.includes("preload")) {
     return "During hemodynamic monitoring, end-diastolic volume increases after a fluid bolus while contractility and afterload are unchanged.";
@@ -940,8 +1250,20 @@ function appliedClinicalCueForConcept(concept, topic, index) {
   if (text.includes("renin") || text.includes("aldosterone") || text.includes("adh")) {
     return "Effective arterial volume falls, urine sodium decreases, and neurohormonal markers are measured before volume replacement.";
   }
-  if (text.includes("insulin") || text.includes("glucagon") || text.includes("thyroid") || text.includes("adrenal") || text.includes("pituitary")) {
-    return "Hormone levels and target-organ responses are measured together before and after a controlled change in feedback stimulus.";
+  if (text.includes("glucagon") || text.includes("fasting") || text.includes("gluconeogenesis")) {
+    return "Plasma glucose is low, insulin is suppressed, glucagon is elevated, and hepatic glucose output increases during the fast.";
+  }
+  if (text.includes("insulin")) {
+    return "After a carbohydrate-rich meal, plasma glucose rises and insulin-sensitive tissues increase glucose uptake and storage.";
+  }
+  if (text.includes("thyroid")) {
+    return "TSH, free thyroxine, heart rate, and heat intolerance are interpreted together to determine the direction of thyroid feedback.";
+  }
+  if (text.includes("adrenal")) {
+    return "Morning cortisol, ACTH, blood pressure, and serum electrolytes are interpreted together during evaluation of adrenal function.";
+  }
+  if (text.includes("pituitary") || text.includes("gnrh") || text.includes("hypothalamic")) {
+    return "Pituitary hormone levels are compared with target-gland hormone levels to determine whether feedback is intact.";
   }
   if (text.includes("motility") || text.includes("secretion") || text.includes("digestion") || text.includes("absorption") || text.includes("bile")) {
     return "Symptoms are correlated with a meal challenge, luminal contents, and the relevant secretory, motility, or absorptive measurement.";
@@ -2100,9 +2422,11 @@ function buildValidationPayload(engineKey) {
       choices: question.choices.map((choice, index) => ({
         label: String.fromCharCode(65 + index),
         text: choice,
-        isCorrect: index === question.answer
+        isCorrect: index === question.answer,
+        explanation: question.choiceExplanations?.[index] || ""
       })),
       explanation: question.explanation,
+      optionByOptionExplanation: question.choiceExplanations || [],
       learningObjective: question.objective
     },
     validationInstructions: [
@@ -2117,7 +2441,10 @@ function buildValidationPayload(engineKey) {
 
 function assessQuestionForValidation(question) {
   const stem = question.stem || "";
-  const explanation = question.explanation || "";
+  const explanation = [
+    question.explanation || "",
+    ...(question.choiceExplanations || [])
+  ].join(" ");
   const normalizedStem = stem.toLowerCase();
   const choices = question.choices || [];
   const uniqueChoices = new Set(choices.map((choice) => choice.toLowerCase().trim()));
@@ -2146,8 +2473,8 @@ function assessQuestionForValidation(question) {
   if (difficulty < 0.75) {
     issues.push("the projected difficulty is below the current high-difficulty target");
   }
-  if (explanation.length < 180) {
-    issues.push("the explanation should more fully justify the physiology");
+  if (explanation.length < 300) {
+    issues.push("the option-by-option explanation should more fully justify the physiology");
   }
 
   const verdict = issues.length === 0 ? "validated" : issues.length <= 2 ? "revise" : "not validated";
@@ -2434,10 +2761,16 @@ function buildPdfLines() {
 }
 
 function buildPdfAnswerExplanationLines(question) {
-  return [
+  const lines = [
     ...wrapPdfText(`Why the correct answer fits the stem: ${correctAnswerFitText(question)}`, 92),
     ...wrapPdfText(`Why the other options are less likely: ${distractorPhysiologySummary(question)}`, 92)
   ];
+  question.choices.forEach((choice, index) => {
+    const label = String.fromCharCode(65 + index);
+    const explanation = question.choiceExplanations?.[index] || "";
+    lines.push(...wrapPdfText(`${label}. ${choice}: ${explanation}`, 92));
+  });
+  return lines;
 }
 
 function wrapPdfText(text, maxLength) {
@@ -2671,26 +3004,28 @@ function correctAnswerFitText(question) {
 
 function selectedAnswerPhysiologyText(question, selectedIndex, isCorrect) {
   if (isCorrect) {
-    return "Your choice follows the same physiologic change shown in the stem.";
+    return "Your choice is consistent with the clinical pattern and the measured physiologic change.";
   }
 
   const selectedLabel = String.fromCharCode(65 + selectedIndex);
   const selectedChoice = question.choices[selectedIndex];
-  return `Choice ${selectedLabel}, ${selectedChoice}, does not follow from the stem findings. It predicts a different change or depends on a condition that is not shown.`;
+  return `Choice ${selectedLabel}, ${selectedChoice}, is not supported by the clinical pattern in the vignette.`;
 }
 
 function distractorPhysiologySummary(question) {
-  return "The other options either move the variable in the wrong direction or require a finding that is absent from the vignette.";
+  return "Each incorrect option is physiologically plausible in a different setting, but it conflicts with the timing, measurements, or direction of change in this vignette.";
 }
 
 function buildDistractorReview(question, selectedIndex) {
   return question.choices
     .map((choice, index) => ({ choice, index }))
     .filter((item) => item.index !== question.answer)
-    .filter((item) => item.index === selectedIndex)
     .map((item) => {
       const label = String.fromCharCode(65 + item.index);
-      return `<li><strong>${label}.</strong> ${escapeHtml(item.choice)} does not match the physiologic pattern in the stem.</li>`;
+      const selectedNote = item.index === selectedIndex ? " Selected answer." : "";
+      const explanation = question.choiceExplanations?.[item.index]
+        || incorrectChoiceExplanation(item.choice, question.choices[question.answer], question.topic, question);
+      return `<li><strong>${label}. ${escapeHtml(item.choice)}.</strong>${selectedNote} ${escapeHtml(explanation)}</li>`;
     })
     .join("");
 }
@@ -2747,15 +3082,15 @@ function conciseKeyClue(question) {
 function buildDetailedReview(question, selectedIndex, isCorrect) {
   const correctLabel = String.fromCharCode(65 + question.answer);
   const correctChoice = question.choices[question.answer];
+  const correctExplanation = question.choiceExplanations?.[question.answer] || correctAnswerFitText(question);
   const selectedDistractor = buildDistractorReview(question, selectedIndex);
-  const selectedDistractorBlock = selectedDistractor ? `<ul>${selectedDistractor}</ul>` : "";
 
   return `
     <p><strong>${escapeHtml(question.id)} correct answer: ${correctLabel}. ${escapeHtml(correctChoice)}</strong></p>
-    <p><strong>Why it fits:</strong> ${escapeHtml(correctAnswerFitText(question))}</p>
+    <p><strong>Why it fits:</strong> ${escapeHtml(correctExplanation)} ${escapeHtml(correctAnswerFitText(question))}</p>
     <p><strong>Your answer:</strong> ${escapeHtml(selectedAnswerPhysiologyText(question, selectedIndex, isCorrect))}</p>
-    <p><strong>Other options:</strong> ${escapeHtml(distractorPhysiologySummary(question))}</p>
-    ${selectedDistractorBlock}
+    <p><strong>Why the other options are incorrect:</strong> ${escapeHtml(distractorPhysiologySummary(question))}</p>
+    <ul>${selectedDistractor}</ul>
   `;
 }
 
