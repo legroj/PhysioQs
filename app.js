@@ -1,6 +1,6 @@
-const STORAGE_KEY = "physioq.questionBank.v6";
+const STORAGE_KEY = "physioq.questionBank.v7";
 const VALIDATION_STORAGE_KEY = "physioq.validationResults.v1";
-const BANK_VERSION = "2026-06-04-stem-cleanup-bank-v2";
+const BANK_VERSION = "2026-06-04-stem-cleanup-bank-v3";
 const BANK_ASSET_URL = `question-bank.json?v=${BANK_VERSION}`;
 const BASE_QUESTIONS_PER_TOPIC = 0;
 const VIGNETTE_QUESTIONS_PER_TOPIC = 100;
@@ -747,28 +747,28 @@ function nbmeClinicalCaseForSystem(system, topic, index, concept) {
   }
   if (topic === "Body Volume") {
     if (text.includes("secretory diarrhea") || text.includes("isotonic contraction")) {
-      return "A 39-year-old patient has several hours of watery diarrhea. Serum sodium remains 140 mEq/L, but orthostatic symptoms develop and plasma volume markers are measured before fluid replacement.";
+      return "A 39-year-old patient has several hours of watery diarrhea and increasing lightheadedness when standing. Plasma volume markers are measured before fluid replacement.";
     }
     if (text.includes("isotonic resuscitation") || text.includes("isotonic saline after hemorrhage")) {
-      return "A trauma patient with recent blood loss receives a large volume of isotonic crystalloid before blood products are available. Hematocrit, plasma protein concentration, arterial pressure, and plasma volume are measured after resuscitation.";
+      return "A trauma patient with recent blood loss receives crystalloid resuscitation before blood products are available. Hematocrit, plasma protein concentration, arterial pressure, and plasma volume are measured after resuscitation.";
     }
     if (text.includes("isotonic saline") && text.includes("infusion")) {
-      return "A 72-year-old patient receives isotonic crystalloid during monitored resuscitation. Serum sodium, plasma osmolality, hematocrit, and plasma protein concentration are measured before and after the infusion.";
+      return "A 72-year-old patient receives intravenous crystalloid during monitored resuscitation. Serum sodium, plasma osmolality, hematocrit, and plasma protein concentration are measured before and after the infusion.";
     }
     if (text.includes("profuse sweating") || text.includes("hypertonic contraction")) {
-      return "A 24-year-old runner collapses after prolonged exercise in hot weather without access to water. Serum sodium, plasma osmolality, hematocrit, and plasma protein concentration are measured on arrival.";
+      return "A 24-year-old runner develops confusion after prolonged exercise in hot weather with minimal fluid intake. Serum sodium, plasma osmolality, hematocrit, and plasma protein concentration are measured on arrival.";
     }
     if (text.includes("hypertonic saline") || text.includes("hypertonic expansion")) {
-      return "A patient with symptomatic hyponatremia receives hypertonic saline in a monitored setting. Serum osmolality, ECF volume, ICF volume, hematocrit, and plasma protein concentration are followed over time.";
+      return "A patient with symptomatic hyponatremia receives a concentrated sodium-containing infusion in a monitored setting. Serum osmolality, ECF volume, ICF volume, hematocrit, and plasma protein concentration are followed over time.";
     }
     if (text.includes("desmopressin") || text.includes("hypotonic expansion")) {
-      return "A patient taking desmopressin drinks several liters of water during a supervised study. Serum sodium, plasma osmolality, neurologic symptoms, hematocrit, and plasma protein concentration are monitored.";
+      return "A patient taking desmopressin drinks several liters of water during a supervised study and develops headache and nausea. Serum sodium, plasma osmolality, hematocrit, and plasma protein concentration are monitored.";
     }
     if (text.includes("adrenal insufficiency") || text.includes("hypotonic contraction")) {
-      return "A patient with untreated primary adrenal insufficiency develops salt wasting, fatigue, and orthostatic symptoms. Serum sodium, plasma osmolality, ECF volume, ICF volume, and hematocrit are measured.";
+      return "A patient with untreated primary adrenal insufficiency develops fatigue, nausea, and orthostatic symptoms. Serum sodium, plasma osmolality, ECF volume, ICF volume, and hematocrit are measured.";
     }
     if (text.includes("mannitol")) {
-      return "A patient receives intravenous mannitol for elevated intracranial pressure. The osmole remains largely extracellular while serum osmolality, urine flow, and cellular water shifts are monitored.";
+      return "A patient receives an osmotic agent for elevated intracranial pressure. Serum osmolality, urine flow, and paired body-fluid compartment measurements are monitored.";
     }
     if (text.includes("burns") || text.includes("protein-rich plasma")) {
       return "A patient with extensive thermal burns develops capillary leak shortly after injury. Intravascular volume, interstitial edema, hematocrit, and plasma protein concentration are measured during initial evaluation.";
