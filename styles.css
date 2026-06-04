@@ -533,6 +533,25 @@ textarea {
   line-height: 1.65;
 }
 
+.case-sequence {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--teal);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.case-stem {
+  display: block;
+}
+
+.lead-in {
+  display: block;
+  margin-top: 14px;
+  font-weight: 800;
+}
+
 .annotation-toolbar {
   display: flex;
   gap: 8px;

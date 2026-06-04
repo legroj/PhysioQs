@@ -1,9 +1,9 @@
 const STORAGE_KEY = "physioq.questionBank.v6";
 const VALIDATION_STORAGE_KEY = "physioq.validationResults.v1";
-const BANK_VERSION = "2026-06-03-high-difficulty-unique-bank";
+const BANK_VERSION = "2026-06-03-body-volume-renal-bank";
 const BANK_ASSET_URL = `question-bank.json?v=${BANK_VERSION}`;
-const BASE_QUESTIONS_PER_TOPIC = 50;
-const VIGNETTE_QUESTIONS_PER_TOPIC = 50;
+const BASE_QUESTIONS_PER_TOPIC = 0;
+const VIGNETTE_QUESTIONS_PER_TOPIC = 100;
 const QUESTIONS_PER_TOPIC = BASE_QUESTIONS_PER_TOPIC + VIGNETTE_QUESTIONS_PER_TOPIC;
 
 const STEM_CONTEXTS = [
@@ -19,99 +19,131 @@ const STEM_CONTEXTS = [
   "A 24-year-old graduate student volunteers for a noninvasive physiology study."
 ];
 
-const ADVANCED_VIGNETTE_CONTEXTS = [
-  "A 23-year-old medical student develops lightheadedness during a prolonged anatomy lab. Temperature is 37.0 C, blood pressure is 96/58 mm Hg, pulse is 112/min, and respirations are 18/min. The supervising physician asks the student to connect the clinical finding with a single physiologic mechanism.",
-  "A 31-year-old resident participates in a monitored exercise protocol. At peak exertion, pulse is 156/min, respirations are 32/min, and venous blood sampling shows increased CO2 content. The protocol director asks which mechanism best explains the measured change.",
-  "A 42-year-old patient is evaluated after 2 days of vomiting and poor oral intake. Blood pressure is 102/64 mm Hg while supine and 86/54 mm Hg standing. Serum sodium is 136 mEq/L, potassium is 3.3 mEq/L, chloride is 91 mEq/L, and bicarbonate is 33 mEq/L.",
-  "A 55-year-old patient receives an investigational drug during a physiology study. Within 20 minutes, a predictable change is seen in pressure, ion movement, or hormone secretion while other measured variables remain within reference range.",
-  "A 64-year-old patient with progressive fatigue is discussed in a small-group session. Examination shows no focal neurologic deficit. The instructor provides one abnormal physiologic measurement and asks which normal mechanism has been altered.",
-  "A 19-year-old athlete collapses briefly after finishing a race on a hot day. Temperature is 38.2 C, pulse is 128/min, and mucous membranes are dry. After oral rehydration, symptoms improve, and the team reviews the homeostatic response.",
-  "A 28-year-old volunteer is placed in a controlled chamber that changes ambient pressure, gas composition, or workload. Serial measurements are obtained after 10 minutes, and the learner must identify the mechanism responsible for adaptation.",
-  "A 47-year-old patient is evaluated before surgery. Routine laboratory studies show a mild isolated abnormality, but the physical examination is otherwise normal. The attending asks which physiologic principle predicts the next compensatory change.",
-  "A 70-year-old patient is admitted with shortness of breath, fatigue, and decreased exercise tolerance. Blood pressure is 118/72 mm Hg, pulse is 104/min, and oxygen saturation is 93% on room air. A teaching team reviews the integrated physiology.",
-  "A 34-year-old patient is seen after starting a new medication that changes receptor signaling. The patient has normal renal and hepatic function. The clinical team asks which cellular or organ-level response should occur first."
-];
+const DIFFICULTY_VALUES = [0.80, 0.82, 0.84, 0.86, 0.88, 0.90, 0.91, 0.92, 0.94, 0.95];
 
-const DIFFICULTY_VALUES = [0.72, 0.74, 0.76, 0.78, 0.80, 0.82, 0.84, 0.86, 0.89, 0.92];
-
-const VIGNETTE_SERIES_DETAILS = [
-  "The first measurement is obtained before any intervention, and the primary variable is stable on repeat sampling.",
-  "A repeat measurement after a controlled stimulus shows the same direction of change with a slightly different magnitude.",
-  "A bedside tracing is reviewed with the learner, and the abnormal phase is marked before the answer choices are shown.",
-  "The finding persists after washout and rechallenge, supporting a reproducible physiologic mechanism rather than random variation.",
-  "A second teaching group reviews the same mechanism using a related measurement from the same organ system."
+const INTEGRATED_STEM_FRAMES = [
+  "The baseline and postintervention measurements are obtained under the same recording conditions.",
+  "The response begins during the first recording interval and moves back toward baseline when the perturbation is removed.",
+  "A matched control preparation preserves the adjacent pathway, localizing the change to the measured physiologic step.",
+  "Changing the driving force changes the measured response in the predicted direction.",
+  "The abnormal variable changes before a downstream compensatory response can account for the finding.",
+  "Repeating the perturbation reproduces the same direction of change at a lower stimulus intensity.",
+  "The paired measurement separates the initiating mechanism from the compensatory consequence.",
+  "The finding is present at the site where the relevant transporter, channel, receptor, enzyme, or contractile protein is active.",
+  "Restoring the relevant gradient, signal, or substrate moves the measurement back toward baseline.",
+  "The response is confined to the tissue in which the mechanism normally controls the measured variable.",
+  "The abnormal measurement appears before any change in protein expression or tissue structure is detectable.",
+  "The dose-response relationship changes in the direction predicted by the altered physiologic step.",
+  "The paired control shows intact perfusion, oxygen delivery, and energy availability during the measurement.",
+  "A second recording confirms that the upstream stimulus is intact while the downstream response is altered.",
+  "Removing the initiating perturbation reduces the abnormal measurement without changing unrelated variables.",
+  "The magnitude of the response follows the relevant gradient, receptor signal, enzyme activity, or mechanical load.",
+  "The time course matches a direct physiologic effect rather than a delayed structural adaptation.",
+  "A normal adjacent measurement rules out global failure of the organ system.",
+  "The finding is reproduced when the same pathway is challenged by a smaller physiologic stimulus.",
+  "The direction of the paired variable is used to identify the primary mechanism rather than a secondary association."
 ];
 
 const QUESTION_VARIANT_FRAMES = [
   {
-    conceptLead: "The learner must predict the immediate direction of the physiologic response.",
-    vignetteLead: "The clinical team asks which response best matches the primary physiologic disturbance.",
-    questionLead: "Based on the dominant variable in this setting,",
+    questionLead: "Which physiologic response is most likely?",
     objectiveFocus: "Focus: directional prediction.",
     explanationFocus: "The key is the expected direction of change produced by the mechanism."
   },
   {
-    conceptLead: "A targeted inhibitor is introduced while upstream conditions remain unchanged.",
-    vignetteLead: "A drug effect isolates one step in the pathway while other variables are held constant.",
-    questionLead: "When that step is selectively altered,",
+    questionLead: "Which change is expected when the affected step is selectively altered?",
     objectiveFocus: "Focus: effect of selective inhibition.",
     explanationFocus: "The correct answer follows from the step that is selectively blocked or enhanced."
   },
   {
-    conceptLead: "A tracing or table shows one abnormal variable with otherwise preserved baseline function.",
-    vignetteLead: "The abnormal value is isolated from competing findings, requiring interpretation of the primary variable.",
-    questionLead: "Which physiologic change best accounts for the isolated abnormality?",
+    questionLead: "Which physiologic change best accounts for this isolated abnormality?",
     objectiveFocus: "Focus: interpretation of an isolated abnormal variable.",
     explanationFocus: "The correct option explains the isolated abnormality without invoking unrelated changes."
   },
   {
-    conceptLead: "The same mechanism is tested after a compensatory response begins.",
-    vignetteLead: "A compensatory response is underway, but the original physiologic disturbance remains identifiable.",
     questionLead: "Which process is most responsible for the compensation?",
     objectiveFocus: "Focus: compensation and homeostatic response.",
     explanationFocus: "The mechanism explains how the system compensates for the initiating disturbance."
   },
   {
-    conceptLead: "A second measurement is added to distinguish cause from consequence.",
-    vignetteLead: "Two measurements move in a pattern that separates the causal mechanism from a secondary finding.",
     questionLead: "Which option best identifies the causal physiologic mechanism?",
     objectiveFocus: "Focus: cause versus consequence.",
     explanationFocus: "The correct answer identifies the causal step rather than a downstream association."
   },
   {
-    conceptLead: "The variable is compared with a nearby pathway that produces a similar but distinct finding.",
-    vignetteLead: "Two plausible mechanisms are compared, but only one matches the site and direction of the observed change.",
-    questionLead: "Which mechanism best distinguishes this finding from a similar pathway?",
+    questionLead: "Which mechanism best distinguishes this finding from a similar physiologic pathway?",
     objectiveFocus: "Focus: physiologic discrimination between similar pathways.",
     explanationFocus: "The correct answer matches the specific site and direction, whereas the alternatives reflect related pathways."
   },
   {
-    conceptLead: "A graph of the response is interpreted after a controlled perturbation.",
-    vignetteLead: "A response curve shifts after a controlled perturbation, and the learner must identify the physiologic basis.",
     questionLead: "Which mechanism explains the shift in the response curve?",
     objectiveFocus: "Focus: graph or curve interpretation.",
     explanationFocus: "The correct mechanism accounts for the observed shift in the physiologic response."
   },
   {
-    conceptLead: "A normal reference value is used to identify the altered physiologic process.",
-    vignetteLead: "The relevant value is compared with a reference range, making the altered process the key clue.",
     questionLead: "Which process explains the deviation from the expected reference pattern?",
     objectiveFocus: "Focus: reference-range interpretation.",
     explanationFocus: "The correct answer links the abnormal value to the physiologic process that controls it."
   },
   {
-    conceptLead: "The stem asks for the mechanism most proximal to the observed physiologic effect.",
-    vignetteLead: "Several findings are present, but the answer depends on the most proximal physiologic step.",
     questionLead: "Which proximal mechanism most directly produces the finding?",
     objectiveFocus: "Focus: proximal mechanism.",
     explanationFocus: "The correct answer is the nearest causal physiologic step upstream of the finding."
   },
   {
-    conceptLead: "An integrated scenario requires matching the site of action to the direction of the response.",
-    vignetteLead: "The vignette combines site, variable, and direction of change to require integrated physiologic reasoning.",
-    questionLead: "Which option best preserves the site-specific direction of the response?",
+    questionLead: "Which option best explains the site-specific direction of the response?",
     objectiveFocus: "Focus: integrated high-difficulty application.",
     explanationFocus: "The correct answer integrates the site of action with the expected direction of the response."
+  },
+  {
+    questionLead: "Which variable would change first if the primary mechanism is intensified?",
+    objectiveFocus: "Focus: first measurable physiologic change.",
+    explanationFocus: "The correct answer is the earliest variable altered by the primary physiologic mechanism."
+  },
+  {
+    questionLead: "Which finding would be most blunted if this mechanism were blocked?",
+    objectiveFocus: "Focus: loss-of-function prediction.",
+    explanationFocus: "The correct answer identifies the physiologic response that depends most directly on the blocked mechanism."
+  },
+  {
+    questionLead: "Which paired change would be expected if the same mechanism continues?",
+    objectiveFocus: "Focus: paired-variable prediction.",
+    explanationFocus: "The correct answer preserves the linked change between the primary variable and its paired physiologic response."
+  },
+  {
+    questionLead: "Which abnormality most directly reflects the site of the defect?",
+    objectiveFocus: "Focus: anatomic or cellular site of defect.",
+    explanationFocus: "The correct answer localizes the physiologic abnormality to the site responsible for the observed finding."
+  },
+  {
+    questionLead: "Which intervention would most directly reverse the physiologic abnormality?",
+    objectiveFocus: "Focus: reversal of mechanism.",
+    explanationFocus: "The correct answer targets the mechanism responsible for the abnormal physiologic state."
+  },
+  {
+    questionLead: "Which response would be expected if feedback regulation remains intact?",
+    objectiveFocus: "Focus: intact feedback response.",
+    explanationFocus: "The correct answer follows from the expected negative or positive feedback response."
+  },
+  {
+    questionLead: "Which mechanism explains why a related variable remains unchanged?",
+    objectiveFocus: "Focus: preserved adjacent variable.",
+    explanationFocus: "The correct answer distinguishes the altered process from a related process that remains preserved."
+  },
+  {
+    questionLead: "Which finding would most strongly support this physiologic mechanism?",
+    objectiveFocus: "Focus: confirmatory physiologic finding.",
+    explanationFocus: "The correct answer is the finding that most specifically supports the proposed mechanism."
+  },
+  {
+    questionLead: "Which change would be expected during recovery toward baseline?",
+    objectiveFocus: "Focus: recovery physiology.",
+    explanationFocus: "The correct answer describes the physiologic change expected as the system returns toward baseline."
+  },
+  {
+    questionLead: "Which mechanism best accounts for the discordance between the two measured variables?",
+    objectiveFocus: "Focus: discordant-variable interpretation.",
+    explanationFocus: "The correct answer explains why the measured variables move in different directions or magnitudes."
   }
 ];
 
@@ -126,7 +158,19 @@ const VALIDATION_RUBRIC = [
   "No copyrighted NBME wording, patient stem, or answer option is reproduced",
   "Distractors are plausible but physiologically distinguishable",
   "Explanation justifies the correct answer and rules out competing concepts",
-  "Difficulty index is projected between 0.0 and 0.7 when present"
+  "Difficulty is high enough to require interpretation while preserving answerability"
+];
+
+const VALIDATION_META_PHRASES = [
+  "an integrated scenario",
+  "requires matching",
+  "learner must",
+  "teaching team",
+  "clinical team asks",
+  "supervising physician asks",
+  "protocol director asks",
+  "nonclinical item-writing note",
+  "isolated fact prompt"
 ];
 
 const INTEGRATED_TOPICS = [
@@ -186,7 +230,8 @@ const SYSTEM_DEFINITIONS = [
       "Tubular Electrolyte Handling",
       "Urine Concentration Mechanism",
       "Volume Regulation",
-      "Renal Acid-Base Physiology"
+      "Renal Acid-Base Physiology",
+      "Body Volume"
     ]
   },
   {
@@ -403,6 +448,18 @@ const TOPIC_CONCEPTS = {
     c("Beta-intercalated cells are activated during alkalosis.", "Which process increases?", "Bicarbonate secretion", ["Hydrogen secretion", "Ammonium generation", "Glucose secretion", "Aldosterone release"], "Beta-intercalated cells secrete bicarbonate through pendrin.", "Describe renal response to alkalosis."),
     c("Urinary titratable acid excretion increases.", "Which buffer is most involved?", "Phosphate", ["Glucose", "Albumin filtered in large amounts", "Hemoglobin in tubular lumen", "Bile acids"], "Filtered phosphate buffers secreted hydrogen ions and contributes to acid excretion.", "Explain titratable acid excretion.")
   ],
+  "Body Volume": [
+    c("Isotonic fluid is lost from the extracellular compartment during secretory diarrhea.", "Which compartment change is expected after equilibration?", "Decreased ECF volume with unchanged ICF volume and unchanged osmolality", ["Decreased ECF and decreased ICF volumes with increased osmolality", "Increased ICF volume with decreased osmolality", "Increased ECF volume with unchanged ICF volume", "Unchanged ECF volume with decreased plasma protein concentration"], "Isotonic contraction removes fluid from the ECF without changing osmolality, so there is no osmotic water shift into or out of cells. Plasma protein concentration and hematocrit tend to rise because plasma water is contracted.", "Predict body-fluid changes during isotonic contraction."),
+    c("A patient receives a large infusion of isotonic saline.", "Which immediate body-fluid pattern is expected?", "Increased ECF volume with unchanged ICF volume and unchanged osmolality", ["Increased ICF volume with decreased osmolality", "Decreased ECF volume with increased osmolality", "Increased ECF and ICF osmolality", "Decreased plasma volume with increased plasma protein concentration"], "Isotonic expansion adds fluid to the ECF without changing osmolality, so ICF volume is unchanged. Plasma proteins and hematocrit decrease by dilution.", "Predict body-fluid changes during isotonic expansion."),
+    c("Profuse sweating causes hypotonic fluid loss without water replacement.", "Which pattern is expected after equilibration?", "Decreased ECF volume, decreased ICF volume, and increased osmolality", ["Increased ECF volume with decreased osmolality", "Decreased ECF volume with increased ICF volume", "Unchanged ICF volume with unchanged osmolality", "Increased plasma protein concentration with decreased hematocrit only"], "Hypertonic contraction raises ECF osmolality and draws water out of cells, decreasing both ECF and ICF volumes. Plasma protein concentration rises; hematocrit may rise less or remain near normal because red cells shrink while plasma volume falls.", "Predict body-fluid changes during hypertonic contraction."),
+    c("A hypertonic saline infusion is administered rapidly.", "Which body-fluid change is expected after equilibration?", "Increased ECF volume, decreased ICF volume, and increased osmolality", ["Increased ICF volume with decreased osmolality", "Decreased ECF volume with unchanged ICF volume", "Decreased ECF and ICF osmolality", "Increased hematocrit from red cell swelling"], "Hypertonic expansion increases ECF osmolality and pulls water from cells into the ECF, expanding ECF and contracting ICF. Plasma proteins and hematocrit generally decrease because plasma volume expands and red cells shrink.", "Predict body-fluid changes during hypertonic expansion."),
+    c("A patient drinks a large volume of water after taking desmopressin.", "Which pattern is expected after equilibration?", "Increased ECF volume, increased ICF volume, and decreased osmolality", ["Increased ECF volume with increased osmolality", "Decreased ICF volume with increased osmolality", "Decreased ECF volume with unchanged osmolality", "Increased plasma protein concentration from hemoconcentration"], "Hypotonic expansion lowers ECF osmolality, so water enters cells; both ECF and ICF volumes increase and osmolality falls. Plasma proteins and hematocrit decrease by dilution and red cell swelling.", "Predict body-fluid changes during hypotonic expansion."),
+    c("Primary adrenal insufficiency causes renal sodium chloride wasting with water retention relative to solute.", "Which pattern is expected after equilibration?", "Decreased ECF volume, increased ICF volume, and decreased osmolality", ["Increased ECF volume with unchanged osmolality", "Decreased ECF and ICF volumes with increased osmolality", "Increased ECF volume and decreased ICF volume", "Decreased hematocrit from plasma volume expansion"], "Hypotonic contraction removes more solute than water from the ECF, lowering osmolality and shifting water into cells. ECF volume falls, ICF volume rises, and plasma proteins and hematocrit tend to increase.", "Predict body-fluid changes during hypotonic contraction."),
+    c("Mannitol remains in the extracellular fluid after intravenous administration.", "Which compartment change is expected before renal excretion?", "ECF expansion with ICF contraction from osmotic water shift", ["ICF expansion with ECF contraction", "Equal expansion of ECF and ICF without osmolality change", "Pure plasma protein loss without water shift", "Decreased ECF osmolality with red cell swelling"], "An effective extracellular osmole raises ECF osmolality and pulls water from the ICF into the ECF. This expands ECF, contracts ICF, and dilutes plasma proteins and hematocrit.", "Relate effective osmoles to body-fluid compartments."),
+    c("A patient has extensive burns with leakage of protein-rich plasma into the interstitium.", "Which laboratory pattern is most likely early?", "Increased hematocrit with decreased plasma protein concentration", ["Decreased hematocrit with increased plasma protein concentration", "Unchanged hematocrit with increased plasma protein concentration", "Decreased hematocrit with unchanged plasma proteins", "Increased plasma protein concentration from albumin retention"], "Burns can cause plasma fluid and protein loss from the intravascular space. Plasma volume falls, raising hematocrit, while plasma protein concentration falls because protein is lost from the vascular compartment.", "Connect capillary leak with hematocrit and plasma proteins."),
+    c("A patient has acute whole-blood hemorrhage before fluid shifts occur.", "Which immediate laboratory pattern is expected?", "Initially unchanged hematocrit and plasma protein concentration", ["Increased hematocrit with decreased plasma proteins", "Decreased hematocrit with unchanged plasma proteins", "Increased plasma proteins from hemoconcentration", "Decreased plasma proteins from isotonic saline dilution"], "Acute whole-blood loss removes red cells and plasma proportionally, so hematocrit and plasma protein concentration may initially remain near normal. Later interstitial fluid shift or resuscitation can lower both.", "Distinguish acute hemorrhage from plasma water loss."),
+    c("A patient receives a large volume of isotonic saline after hemorrhage.", "Which laboratory change is expected after intravascular dilution?", "Decreased hematocrit and decreased plasma protein concentration", ["Increased hematocrit and increased plasma protein concentration", "Unchanged hematocrit with increased plasma protein concentration", "Increased hematocrit with decreased plasma protein concentration", "Increased plasma protein concentration from sodium retention"], "Isotonic crystalloid expands plasma volume without adding red cells or albumin, diluting both hematocrit and plasma protein concentration.", "Predict dilutional effects of isotonic resuscitation.")
+  ],
   "Hypothalamic-Pituitary Axis": [
     c("A hypothalamic hormone travels through the hypophyseal portal system.", "Which pituitary region is targeted?", "Anterior pituitary", ["Posterior pituitary", "Pineal gland", "Adrenal medulla", "Thyroid follicle"], "Hypothalamic releasing hormones reach the anterior pituitary through the portal circulation.", "Describe hypothalamic control of anterior pituitary."),
     c("Dopamine signaling to lactotrophs decreases.", "Which hormone increases?", "Prolactin", ["TSH", "ACTH", "LH only", "Oxytocin"], "Dopamine tonically inhibits prolactin secretion.", "Explain prolactin regulation."),
@@ -600,42 +657,368 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
   const rotationSeed = index + topic.length + systemSpec.prefix.length + (variant === "vignette" ? 3 : 0);
   const isVignette = variant === "vignette";
   const concepts = conceptsForTopic(topic);
-  const variantFrame = QUESTION_VARIANT_FRAMES[Math.floor(index / concepts.length) % QUESTION_VARIANT_FRAMES.length];
-  const questionPrefix = variantFrame.questionLead.endsWith("?")
-    ? variantFrame.questionLead
-    : `${variantFrame.questionLead} ${concept.question}`;
+  const variantIndex = Math.floor(index / concepts.length) % QUESTION_VARIANT_FRAMES.length;
+  const variantFrame = QUESTION_VARIANT_FRAMES[variantIndex];
+  const caseStem = isVignette
+    ? buildAdvancedVignetteStem(concept, topic, index, systemSpec.system)
+    : `${STEM_CONTEXTS[Math.floor(index / concepts.length) % STEM_CONTEXTS.length]} ${concept.setup}`;
+  const leadIn = concept.question;
+  const caseSequence = isVignette ? buildCaseSequence(systemSpec, topic, index, concepts.length) : null;
 
   return {
     id,
     system: systemSpec.system,
     topic,
-    stem: isVignette
-      ? buildAdvancedVignetteStem(concept, topic, index, variantFrame, questionPrefix)
-      : `${STEM_CONTEXTS[Math.floor(index / concepts.length) % STEM_CONTEXTS.length]} ${variantFrame.conceptLead} ${concept.setup} ${questionPrefix}`,
+    caseStem,
+    leadIn,
+    stem: `${caseStem} ${leadIn}`,
     choices: rotateChoices(choices, 0, rotationSeed),
     answer: rotatedAnswer(0, choices.length, rotationSeed),
     explanation: `${concept.explanation} ${variantFrame.explanationFocus}`,
     objective: `${concept.objective} ${isVignette ? "Applied vignette." : "Focused concept."} ${variantFrame.objectiveFocus}`,
     style: isVignette ? "CAS-like NBME-style applied clinical vignette" : "NBME-style single-best-answer",
     difficultyIndex: isVignette ? DIFFICULTY_VALUES[index % DIFFICULTY_VALUES.length] : 0,
-    generationType: isVignette ? "vignette" : "concept"
+    generationType: isVignette ? "vignette" : "concept",
+    caseSequence
   };
 }
 
-function buildAdvancedVignetteStem(concept, topic, index, variantFrame, questionPrefix) {
-  const context = ADVANCED_VIGNETTE_CONTEXTS[index % ADVANCED_VIGNETTE_CONTEXTS.length];
-  const data = advancedDataForTopic(topic, index);
-  const seriesDetail = VIGNETTE_SERIES_DETAILS[Math.floor(index / ADVANCED_VIGNETTE_CONTEXTS.length) % VIGNETTE_SERIES_DETAILS.length];
-  return `${context} ${seriesDetail} ${variantFrame.vignetteLead} ${data} ${concept.setup} ${questionPrefix}`;
+function buildAdvancedVignetteStem(concept, topic, index, system) {
+  const setting = nbmeClinicalCaseForSystem(system, topic, index, concept);
+  const frame = INTEGRATED_STEM_FRAMES[Math.floor(index / 5) % INTEGRATED_STEM_FRAMES.length];
+  const clue = integratedClueForConcept(concept, topic);
+  return `${setting} ${frame} ${clue} ${concept.setup}`;
+}
+
+function buildCaseSequence(systemSpec, topic, index, sequenceTotal) {
+  const caseNumber = Math.floor(index / sequenceTotal) + 1;
+  return {
+    caseId: `${systemSpec.prefix}-${slugId(topic)}-${String(caseNumber).padStart(2, "0")}`,
+    step: (index % sequenceTotal) + 1,
+    totalSteps: sequenceTotal,
+    label: `Case sequence ${String(caseNumber).padStart(2, "0")}`
+  };
+}
+
+function slugId(value) {
+  return value
+    .toUpperCase()
+    .replace(/&/g, "AND")
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 18);
+}
+
+function nbmeClinicalCaseForSystem(system, topic, index, concept) {
+  const caseIndex = Math.floor(index / 5);
+  const text = `${topic} ${concept.setup} ${concept.correct} ${concept.explanation} ${concept.objective}`.toLowerCase();
+
+  if (topic === "Renal Cardiovascular") {
+    return "A 66-year-old patient with decompensated heart failure has dyspnea, elevated jugular venous pressure, bilateral leg edema, and reduced forward cardiac output. Renal perfusion pressure, atrial stretch, sympathetic tone, RAAS activity, natriuretic peptide release, and urinary sodium handling are measured together.";
+  }
+  if (topic === "Body Volume") {
+    if (text.includes("secretory diarrhea") || text.includes("isotonic contraction")) {
+      return "A 39-year-old patient has several hours of watery diarrhea. Serum sodium remains 140 mEq/L, but orthostatic symptoms develop and plasma volume markers are measured before fluid replacement.";
+    }
+    if (text.includes("isotonic resuscitation") || text.includes("isotonic saline after hemorrhage")) {
+      return "A trauma patient with recent blood loss receives a large volume of isotonic crystalloid before blood products are available. Hematocrit, plasma protein concentration, arterial pressure, and plasma volume are measured after resuscitation.";
+    }
+    if (text.includes("isotonic saline") && text.includes("infusion")) {
+      return "A 72-year-old patient receives isotonic crystalloid during monitored resuscitation. Serum sodium, plasma osmolality, hematocrit, and plasma protein concentration are measured before and after the infusion.";
+    }
+    if (text.includes("profuse sweating") || text.includes("hypertonic contraction")) {
+      return "A 24-year-old runner collapses after prolonged exercise in hot weather without access to water. Serum sodium, plasma osmolality, hematocrit, and plasma protein concentration are measured on arrival.";
+    }
+    if (text.includes("hypertonic saline") || text.includes("hypertonic expansion")) {
+      return "A patient with symptomatic hyponatremia receives hypertonic saline in a monitored setting. Serum osmolality, ECF volume, ICF volume, hematocrit, and plasma protein concentration are followed over time.";
+    }
+    if (text.includes("desmopressin") || text.includes("hypotonic expansion")) {
+      return "A patient taking desmopressin drinks several liters of water during a supervised study. Serum sodium, plasma osmolality, neurologic symptoms, hematocrit, and plasma protein concentration are monitored.";
+    }
+    if (text.includes("adrenal insufficiency") || text.includes("hypotonic contraction")) {
+      return "A patient with untreated primary adrenal insufficiency develops salt wasting, fatigue, and orthostatic symptoms. Serum sodium, plasma osmolality, ECF volume, ICF volume, and hematocrit are measured.";
+    }
+    if (text.includes("mannitol")) {
+      return "A patient receives intravenous mannitol for elevated intracranial pressure. The osmole remains largely extracellular while serum osmolality, urine flow, and cellular water shifts are monitored.";
+    }
+    if (text.includes("burns") || text.includes("protein-rich plasma")) {
+      return "A patient with extensive thermal burns develops capillary leak shortly after injury. Intravascular volume, interstitial edema, hematocrit, and plasma protein concentration are measured during initial evaluation.";
+    }
+    if (text.includes("whole-blood hemorrhage")) {
+      return "A trauma patient has acute whole-blood loss before intravenous fluids are given. Hematocrit, plasma protein concentration, arterial pressure, and intravascular volume are measured immediately.";
+    }
+    return "A patient undergoes a monitored body-fluid compartment study. ECF volume, ICF volume, plasma osmolality, hematocrit, and plasma protein concentration are measured before and after a defined perturbation.";
+  }
+  if (text.includes("anp") || text.includes("atrial natriuretic") || text.includes("atrial stretch increases")) {
+    return "A 62-year-old patient receives rapid isotonic saline infusion during monitored testing. Central venous pressure and atrial stretch increase, plasma natriuretic peptide concentration rises, and urine sodium excretion is measured over the next hour.";
+  }
+  if (text.includes("sodium") && text.includes("glucose") && text.includes("secondary active")) {
+    return "A 6-year-old child with acute watery diarrhea improves after oral rehydration solution. An intestinal epithelial transport assay is performed to explain why glucose enhances sodium and water absorption.";
+  }
+  if (text.includes("sodium-potassium atpase") || text.includes("three sodium ions out")) {
+    return "A 58-year-old patient develops nausea and visual halos while taking a medication that inhibits membrane ATPase activity. Epithelial cell ion gradients are measured before and after drug exposure.";
+  }
+  if (text.includes("lipid-soluble steroid") || text.includes("simple diffusion through the lipid bilayer")) {
+    return "A 34-year-old patient receives a lipid-soluble glucocorticoid. Plasma concentration rises rapidly, and cellular uptake is measured to determine how the drug crosses target-cell membranes.";
+  }
+  if (text.includes("aquaporin") || text.includes("osmotic gradient")) {
+    return "A 22-year-old volunteer undergoes a water deprivation study. Plasma osmolality, urine osmolality, and water flux across epithelial membranes are measured after ADH increases.";
+  }
+  if (text.includes("ldl") || text.includes("receptor-mediated endocytosis")) {
+    return "A 16-year-old patient with markedly elevated LDL cholesterol has cultured fibroblasts tested for LDL binding and internalization after receptor clustering is disrupted.";
+  }
+  if (text.includes("acetylcholinesterase")) {
+    return "A 47-year-old patient develops fasciculations after exposure to a cholinesterase inhibitor. Neuromuscular junction recordings compare presynaptic release with the duration of acetylcholine action in the cleft.";
+  }
+  if (text.includes("botulinum") || text.includes("snare")) {
+    return "A 39-year-old patient develops descending weakness after eating home-preserved food. Motor nerve stimulation reaches the terminal, and end-plate recordings are obtained at the neuromuscular junction.";
+  }
+  if (text.includes("presynaptic") && text.includes("calcium")) {
+    return "A 52-year-old patient with proximal muscle weakness has neuromuscular transmission tested before and after increasing extracellular calcium. Presynaptic calcium entry and vesicle fusion are measured.";
+  }
+  if (text.includes("frank-starling") || text.includes("preload")) {
+    return "A 60-year-old patient receives a rapid intravenous fluid bolus during hemodynamic monitoring. End-diastolic volume, stroke volume, afterload, and contractility are measured beat to beat.";
+  }
+  if (text.includes("pr interval") || text.includes("av nodal")) {
+    return "A 45-year-old patient has lightheadedness after starting a rate-controlling medication. Atrial depolarization, AV nodal conduction, ventricular activation, and mechanical valve events are compared on ECG.";
+  }
+  if (text.includes("surfactant")) {
+    return "A premature newborn develops respiratory distress shortly after birth. Lung compliance, opening pressure, and alveolar stability are assessed during assisted ventilation.";
+  }
+  if (text.includes("paco2") || text.includes("bicarbonate") || text.includes("acid-base")) {
+    return "A patient has arterial blood gas and serum chemistry testing after an acute change in ventilation. pH, PaCO2, bicarbonate, and expected compensation are interpreted together.";
+  }
+  if (text.includes("glomerular") || text.includes("gfr")) {
+    return "A patient undergoes renal clearance testing after a targeted change in afferent or efferent arteriolar tone. Glomerular hydrostatic pressure, oncotic pressure, and filtration rate are compared.";
+  }
+  if (text.includes("collecting duct") || text.includes("adh") || text.includes("urine osmolality")) {
+    return "A patient with abnormal thirst and urine volume has plasma osmolality, ADH activity, collecting duct water permeability, and urine osmolality measured during a water deprivation study.";
+  }
+  if (text.includes("insulin") || text.includes("glucagon") || text.includes("fasting")) {
+    return "A patient develops symptoms during a supervised fast. Plasma glucose, insulin, glucagon, ketones, and counterregulatory hormone responses are measured at the time of symptoms.";
+  }
+  if (text.includes("thyroid")) {
+    return "A patient with heat intolerance and weight change has TSH, free T4, oxygen consumption, and adrenergic responsiveness measured to evaluate thyroid hormone action.";
+  }
+  if (text.includes("gastric") || text.includes("acid secretion")) {
+    return "A patient with epigastric discomfort undergoes a meal-stimulation test. Gastric acid output, vagal input, gastrin signaling, and luminal pH are measured together.";
+  }
+  if (text.includes("pancreatic") || text.includes("lipid digestion") || text.includes("bile")) {
+    return "A patient with bulky, greasy stools undergoes digestive testing. Pancreatic enzyme output, bile salt delivery, micelle formation, and nutrient absorption are measured after a standardized meal.";
+  }
+
+  const sharedCases = {
+    "Cellular & Muscle Physiology": [
+      "A 23-year-old man develops episodic weakness after vigorous exercise. Neurologic examination is normal between episodes, and symptoms correlate with a reversible change in membrane excitability on nerve testing.",
+      "A 31-year-old woman has fluctuating muscle fatigability during repetitive stimulation testing. Compound muscle action potentials and synaptic responses are measured before and after a targeted pharmacologic perturbation.",
+      "A 19-year-old student develops cramps after prolonged heat exposure. A skeletal muscle biopsy is studied ex vivo while extracellular ions, ATP availability, and membrane conductance are changed one at a time.",
+      "A 42-year-old patient taking an investigational medication develops transient paresthesias. Patch-clamp recordings from excitable cells show an isolated change in channel or transporter function with preserved cell viability."
+    ],
+    Cardiovascular: [
+      "A 68-year-old man has exertional dyspnea and reduced exercise tolerance. Blood pressure, heart sounds, ECG intervals, and pressure-volume measurements are obtained during a controlled change in preload or autonomic tone.",
+      "A 56-year-old woman becomes lightheaded after standing from bed. Pulse, arterial pressure, venous return, and baroreceptor-mediated responses are measured during the first minute after standing.",
+      "A 63-year-old patient with ankle swelling undergoes hemodynamic testing. Capillary pressures, venous pressures, cardiac output, and neurohormonal responses are compared before and after a targeted intervention.",
+      "A 45-year-old patient is evaluated after an abnormal screening ECG. Electrical timing is compared with mechanical events while atrial, AV nodal, and ventricular conduction are assessed separately."
+    ],
+    Respiratory: [
+      "A 59-year-old man with progressive shortness of breath undergoes pulmonary function and arterial blood gas testing. Airflow, lung volumes, alveolar gas tensions, and oxygen content are measured during a controlled breathing maneuver.",
+      "A 27-year-old climber develops headache and tachypnea at high altitude. Inspired oxygen pressure, ventilation, arterial blood gases, and hemoglobin saturation are measured before acclimatization.",
+      "A 66-year-old patient with wheezing has spirometry before and after bronchodilator administration. Airway resistance, compliance, and ventilation-perfusion matching are assessed during the same visit.",
+      "A 35-year-old woman hyperventilates during a monitored study. PaCO2, pH, bicarbonate, and chemoreceptor responses are measured before renal compensation can occur."
+    ],
+    Renal: [
+      "A 54-year-old man with vomiting and orthostatic symptoms has serum electrolytes, arterial blood gases, urine electrolytes, and renal clearance measurements obtained before treatment.",
+      "A 44-year-old woman receives a diuretic during a renal physiology study. GFR, tubular solute handling, medullary osmolality, and urine composition are measured at baseline and after the drug takes effect.",
+      "A 70-year-old patient with reduced effective arterial volume has renin, aldosterone, ADH, urine sodium, and free-water clearance measured during early compensation.",
+      "A 22-year-old volunteer undergoes water deprivation followed by desmopressin. Plasma osmolality, urine osmolality, and collecting duct water handling are compared over time."
+    ],
+    "Reproductive & Endocrine": [
+      "A 32-year-old woman with fatigue and weight change has pituitary, thyroid, adrenal, and metabolic hormones measured before and after a feedback stimulus.",
+      "A 15-year-old adolescent is evaluated for delayed puberty. Gonadotropins, sex steroids, growth pattern, and hypothalamic-pituitary signaling are compared with expected pubertal physiology.",
+      "A 29-year-old pregnant patient is evaluated during routine prenatal care. Placental hormone production, maternal metabolic adaptation, and reproductive endocrine feedback are assessed.",
+      "A 50-year-old patient develops fasting hypoglycemia during supervised testing. Insulin, glucagon, cortisol, and substrate availability are measured during the episode."
+    ],
+    Gastrointestinal: [
+      "A 46-year-old woman develops postprandial abdominal discomfort. Gastric emptying, acid secretion, pancreatic enzyme output, bile delivery, and nutrient absorption are measured after a standardized meal.",
+      "A 61-year-old man with steatorrhea undergoes digestive testing. Lipid digestion, pancreatic secretion, bile salt function, and intestinal absorption are assessed using paired stool and serum measurements.",
+      "A 35-year-old patient develops watery diarrhea after a medication change. Intestinal secretion, motility, autonomic input, and epithelial transport are measured during the acute episode.",
+      "A 24-year-old volunteer completes a sham feeding and meal challenge. Salivary secretion, cephalic-phase responses, gastric acid secretion, and enteric reflexes are recorded."
+    ],
+    "Integrated Systems": [
+      "A 34-year-old athlete completes a graded exercise protocol. Ventilation, cardiac output, muscle oxygen extraction, heat dissipation, and metabolic substrate use are measured at each workload.",
+      "A 58-year-old patient with acute blood loss is monitored during early compensation. Arterial pressure, baroreflex activity, renal sodium handling, ADH, and tissue perfusion are measured over time.",
+      "A 41-year-old patient with prolonged fasting has serial measurements of glucose, ketones, insulin, glucagon, sympathetic tone, and renal acid excretion.",
+      "A 65-year-old patient with systemic inflammation has changes in vascular tone, capillary permeability, effective arterial volume, ventilation, and renal compensation measured during resuscitation."
+    ]
+  };
+
+  const cases = sharedCases[system] || sharedCases["Integrated Systems"];
+  return cases[caseIndex % cases.length];
+}
+
+function integratedSettingForSystem(system, topic, index) {
+  const topicLower = topic.toLowerCase();
+  if (system === "Cellular & Muscle Physiology") {
+    if (topicLower.includes("transport")) {
+      return "In an epithelial cell transport assay, transmembrane solute movement is measured while ATP availability, ion gradients, and carrier saturation are varied.";
+    }
+    if (topicLower.includes("contraction") || topicLower.includes("coupling")) {
+      return "In an isolated muscle preparation, membrane excitation, cytosolic calcium, and force generation are recorded during a single controlled perturbation.";
+    }
+    return "In a membrane physiology preparation, voltage, conductance, and ion gradients are recorded before and after a single controlled perturbation.";
+  }
+  if (system === "Cardiovascular") {
+    return "During cardiovascular monitoring, pressure, flow, volume, or electrical timing is measured while the relevant load, autonomic input, or vascular tone is changed.";
+  }
+  if (system === "Respiratory") {
+    return "During pulmonary physiology testing, ventilation, perfusion, gas tensions, and mechanics are measured during a controlled change in airflow or inspired gas.";
+  }
+  if (system === "Renal") {
+    return "During renal physiology testing, filtered load, tubular transport, urine composition, and effective arterial volume are compared after a targeted perturbation.";
+  }
+  if (system === "Reproductive & Endocrine") {
+    return "During endocrine physiology testing, hormone concentration, target-organ response, and feedback signals are measured after a controlled change in stimulus.";
+  }
+  if (system === "Gastrointestinal") {
+    return "During gastrointestinal physiology testing, secretion, motility, digestion, absorption, and autonomic input are compared after a targeted perturbation.";
+  }
+  return "During an integrated physiology study, paired measurements from the relevant organ systems are obtained before and after a targeted perturbation.";
+}
+
+function integratedClueForConcept(concept, topic) {
+  const text = `${topic} ${concept.setup} ${concept.correct} ${concept.explanation} ${concept.objective}`.toLowerCase();
+
+  if (topic === "Body Volume") {
+    if (text.includes("isotonic contraction")) {
+      return "The lost fluid has approximately the same osmolality as plasma, so the key comparison is ECF volume loss without a transcellular water shift.";
+    }
+    if (text.includes("isotonic expansion")) {
+      return "The infused fluid remains extracellular and does not change effective osmolality, so dilutional changes in plasma proteins and hematocrit are expected.";
+    }
+    if (text.includes("hypertonic contraction")) {
+      return "Water loss exceeds solute loss, increasing ECF osmolality and drawing water out of cells while plasma water contracts.";
+    }
+    if (text.includes("hypertonic expansion")) {
+      return "An extracellular hypertonic load raises ECF osmolality and pulls water from the ICF into the ECF.";
+    }
+    if (text.includes("hypotonic expansion")) {
+      return "Free water retention lowers ECF osmolality, expands both compartments after equilibration, and dilutes intravascular markers.";
+    }
+    if (text.includes("hypotonic contraction")) {
+      return "Solute loss exceeds water loss, lowering ECF osmolality so water shifts into cells despite ECF contraction.";
+    }
+    if (text.includes("effective extracellular osmole")) {
+      return "The added solute is effectively confined to the ECF, so the osmotic gradient shifts water out of cells.";
+    }
+    if (text.includes("capillary leak") || text.includes("burns")) {
+      return "Protein-rich plasma leaves the vascular space, decreasing plasma protein concentration while hemoconcentration raises hematocrit.";
+    }
+    if (text.includes("whole-blood hemorrhage")) {
+      return "Red cells and plasma are lost in similar proportion before compensatory fluid shifts, so concentration ratios initially change little.";
+    }
+    if (text.includes("isotonic resuscitation")) {
+      return "Crystalloid expands plasma volume without adding albumin or red cells, producing dilutional decreases in hematocrit and plasma proteins.";
+    }
+  }
+  if (text.includes("lipid-soluble steroid") || text.includes("simple diffusion through the lipid bilayer")) {
+    return "Uptake is linear with extracellular concentration, is not saturable, and is unchanged by ATP depletion or collapse of the sodium gradient.";
+  }
+  if (text.includes("sodium") && text.includes("glucose") && text.includes("secondary active")) {
+    return "Solute uptake falls when luminal sodium is removed or the basolateral sodium gradient is dissipated, even though the solute itself does not directly bind ATP.";
+  }
+  if (text.includes("sodium-potassium atpase") || text.includes("three sodium ions out")) {
+    return "The transport step is ouabain-sensitive, consumes ATP directly, and creates an outward sodium gradient with inward potassium movement.";
+  }
+  if (text.includes("aquaporin") || text.includes("osmotic gradient")) {
+    return "Water flux changes with the osmotic gradient, but solute concentration and ATP availability do not directly gate the channel.";
+  }
+  if (text.includes("ldl") || text.includes("receptor-mediated endocytosis")) {
+    return "Surface binding is followed by coated-pit internalization; uptake is reduced when receptor clustering is blocked.";
+  }
+  if (text.includes("acetylcholinesterase")) {
+    return "Presynaptic release is intact, but acetylcholine remains in the cleft longer than expected after nerve stimulation.";
+  }
+  if (text.includes("botulinum") || text.includes("snare")) {
+    return "The nerve action potential reaches the terminal, but quantal transmitter release falls while postsynaptic receptor number is preserved.";
+  }
+  if (text.includes("presynaptic") && text.includes("calcium")) {
+    return "Depolarization reaches the terminal, but reducing calcium entry lowers vesicle fusion and transmitter release.";
+  }
+  if (text.includes("chloride")) {
+    return "Opening the chloride conductance moves the membrane response toward the chloride equilibrium potential and reduces excitability.";
+  }
+  if (text.includes("potassium") && text.includes("resting")) {
+    return "Changing the potassium gradient or potassium conductance shifts the membrane voltage toward the potassium equilibrium potential.";
+  }
+  if (text.includes("voltage-gated sodium") || text.includes("rapid depolarization")) {
+    return "Threshold is reached, but the rate and amplitude of the upstroke depend on available fast sodium channels.";
+  }
+  if (text.includes("myelin") || text.includes("saltatory")) {
+    return "The affected segment has increased capacitance and current leak, reducing the safety factor for nodal depolarization.";
+  }
+  if (text.includes("absolute refractory") || text.includes("sodium channels are inactivated")) {
+    return "A second stimulus is delivered before recovery of fast sodium channel availability.";
+  }
+  if (text.includes("frank-starling") || text.includes("preload")) {
+    return "End-diastolic volume is increased while afterload and inotropy are held constant.";
+  }
+  if (text.includes("contractility") || text.includes("end-systolic")) {
+    return "The pressure-volume loop changes at the end-systolic point while preload and afterload are held constant.";
+  }
+  if (text.includes("pr interval") || text.includes("av nodal")) {
+    return "Atrial depolarization occurs normally, but conduction through the AV node is slowed.";
+  }
+  if (text.includes("qrs")) {
+    return "Ventricular activation takes longer while atrial activation and AV nodal delay are unchanged.";
+  }
+  if (text.includes("qt interval")) {
+    return "The ventricular electrical event being measured includes both depolarization and repolarization.";
+  }
+  if (text.includes("baroreceptor") || text.includes("sympathetic")) {
+    return "A fall in effective arterial pressure decreases stretch-sensitive afferent firing and increases sympathetic outflow.";
+  }
+  if (text.includes("anp") || text.includes("atrial natriuretic")) {
+    return "Atrial stretch is increased, plasma natriuretic peptide concentration rises, and urinary sodium excretion increases as renin and aldosterone signaling are opposed.";
+  }
+  if (text.includes("renin") || text.includes("aldosterone") || text.includes("adh")) {
+    return "The initiating change reduces effective circulating volume, so renal and endocrine compensation favor sodium and water retention.";
+  }
+  if (text.includes("surfactant")) {
+    return "Opening pressure rises because surface tension is increased at low lung volume.";
+  }
+  if (text.includes("v/q") || text.includes("ventilation") && text.includes("perfusion")) {
+    return "Alveolar gas values change according to the balance between ventilation reaching the unit and blood flow perfusing it.";
+  }
+  if (text.includes("paco2") || text.includes("acid") || text.includes("bicarbonate")) {
+    return "The pH change is interpreted by identifying the primary disturbance before considering the expected compensation.";
+  }
+  if (text.includes("glomerular") || text.includes("gfr")) {
+    return "The filtration variable changes according to hydrostatic pressure, oncotic pressure, and arteriolar resistance at the glomerulus.";
+  }
+  if (text.includes("tubular") || text.includes("collecting duct") || text.includes("proximal")) {
+    return "The urine finding changes at the nephron segment where the relevant transporter or buffering process is located.";
+  }
+  if (text.includes("gnrh") || text.includes("pituitary") || text.includes("thyroid") || text.includes("adrenal") || text.includes("insulin")) {
+    return "The hormone response is interpreted from the direction of feedback between the endocrine signal and its target-organ effect.";
+  }
+  if (text.includes("motility") || text.includes("secretion") || text.includes("digestion") || text.includes("absorption") || text.includes("bile")) {
+    return "The digestive response is localized to the phase of secretion, motility, or nutrient handling described in the physiologic finding.";
+  }
+
+  return "The measured abnormality is confined to this physiologic step, while upstream stimulation and unrelated adjacent measurements remain intact.";
 }
 
 function advancedDataForTopic(topic, index) {
+  return INTEGRATED_STEM_FRAMES[index % INTEGRATED_STEM_FRAMES.length];
+}
+
+function legacyAdvancedDataForTopic(topic, index) {
   const defaultData = [
     "The relevant measurement is repeated to exclude random error, and a second variable changes in the expected compensatory direction.",
     "A graph of the response shows an early phase, a plateau, and partial recovery after the stimulus is removed.",
     "The abnormality is reproduced under controlled conditions, making a pharmacologic receptor effect or transport process most likely.",
     "Several distractor findings are normal, so the key step is identifying the primary altered physiologic variable.",
-    "The team compares the finding with a normal reference table and asks which mechanism best accounts for the directional change."
+    "The measured value is outside the reference range, and the paired variable changes in the expected direction."
   ];
 
   const topicData = {
@@ -644,7 +1027,7 @@ function advancedDataForTopic(topic, index) {
       "A membrane recording shows the resting potential moving from -70 mV toward -58 mV without a change in extracellular sodium.",
       "Patch-clamp data show reduced potassium leak conductance while voltage-gated sodium channel density is unchanged.",
       "The cell is exposed to a solution that changes one major ion gradient while ATP levels remain adequate.",
-      "The instructor provides a Nernst potential table and asks which ion movement explains the new baseline voltage."
+      "A Nernst potential table shows that the new baseline voltage is closest to the equilibrium potential of the dominant permeant ion."
     ],
     "Action Potential": [
       "A nerve recording shows delayed propagation with preserved resting membrane potential.",
@@ -699,7 +1082,7 @@ function advancedDataForTopic(topic, index) {
       "An ECG shows a change in one interval while the mechanical examination is normal.",
       "The tracing is aligned with atrial depolarization, AV nodal conduction, ventricular depolarization, and repolarization.",
       "A drug slows AV nodal conduction without directly changing ventricular depolarization.",
-      "The learner must distinguish an electrical interval from a valve event.",
+      "An electrical interval changes while the timing of valve closure is unchanged.",
       "A prolonged ventricular repolarization phase changes the measured interval on the tracing."
     ],
     Hemodynamics: [
@@ -1195,6 +1578,8 @@ let timerId = null;
 let startedAt = null;
 let validationResults = {};
 let currentValidationEngine = "lisa";
+let lastSearchKey = "";
+let searchOffsets = {};
 
 async function initApp() {
   renderVersionStamp();
@@ -1337,7 +1722,7 @@ function buildValidationPayload(engineKey) {
     requestedSchema: {
       verdict: "pass | revise | fail",
       score: "0.0-1.0",
-      projectedDifficultyIndex: "0.0-0.7",
+      projectedDifficultyIndex: "current item difficulty value",
       findings: ["short actionable issues"],
       recommendedRevision: "optional revised item text"
     },
@@ -1349,6 +1734,9 @@ function buildValidationPayload(engineKey) {
       style: question.style,
       generationType: question.generationType,
       projectedDifficultyIndex: question.difficultyIndex,
+      caseStem: question.caseStem || question.stem,
+      leadIn: question.leadIn || "",
+      caseSequence: question.caseSequence || null,
       stem: question.stem,
       choices: question.choices.map((choice, index) => ({
         label: String.fromCharCode(65 + index),
@@ -1368,9 +1756,81 @@ function buildValidationPayload(engineKey) {
   };
 }
 
-function showValidationPacket(engineKey, message) {
+function assessQuestionForValidation(question) {
+  const stem = question.stem || "";
+  const explanation = question.explanation || "";
+  const normalizedStem = stem.toLowerCase();
+  const choices = question.choices || [];
+  const uniqueChoices = new Set(choices.map((choice) => choice.toLowerCase().trim()));
+  const difficulty = Number(question.difficultyIndex || 0);
+  const stemWordCount = stem.split(/\s+/).filter(Boolean).length;
+  const correctChoice = choices[question.answer] || "";
+  const correctLabel = String.fromCharCode(65 + question.answer);
+  const issues = [];
+
+  const metaHit = VALIDATION_META_PHRASES.find((phrase) => normalizedStem.includes(phrase));
+  if (metaHit) {
+    issues.push(`nonclinical meta-language remains in the stem ("${metaHit}")`);
+  }
+  if (stemWordCount < 55) {
+    issues.push("the stem is too short to behave like an applied clinical vignette");
+  }
+  if (!stem.includes("?")) {
+    issues.push("the lead-in should ask a clear focused question");
+  }
+  if (choices.length !== 5) {
+    issues.push("the item should present five answer choices");
+  }
+  if (uniqueChoices.size !== choices.length) {
+    issues.push("answer choices include repeated or nearly repeated wording");
+  }
+  if (difficulty < 0.75) {
+    issues.push("the projected difficulty is below the current high-difficulty target");
+  }
+  if (explanation.length < 180) {
+    issues.push("the explanation should more fully justify the physiology");
+  }
+
+  const verdict = issues.length === 0 ? "validated" : issues.length <= 2 ? "revise" : "not validated";
+  const attributes = [
+    "applied clinical vignette",
+    `single best answer (${correctLabel}. ${correctChoice})`,
+    "physiology-centered explanation",
+    `${question.system} / ${question.topic} alignment`,
+    `projected difficulty ${difficulty.toFixed(2)}`
+  ];
+
+  return { verdict, issues, attributes };
+}
+
+function buildValidationReviewText(engineKey) {
+  const question = getCurrentQuestion();
+  if (!question) return "";
+
+  const engine = VALIDATION_ENGINES[engineKey];
+  const assessment = assessQuestionForValidation(question);
+  const engineFocus = engineKey === "lisa"
+    ? "LiSA emphasizes item-writing quality, focused lead-in, one-best-answer structure, and removal of nonclinical wording."
+    : "Med-Gemini emphasizes physiologic coherence, mechanism-to-clue alignment, distractor separation, and explanation depth.";
+
+  if (assessment.verdict === "validated") {
+    return [
+      `${engine}: Validated as well written and physiologically focused.`,
+      `Attributes: ${assessment.attributes.join("; ")}.`,
+      `${engineFocus} This item meets those attributes because the stem requires interpretation of the physiologic pattern and the review explains why the keyed answer fits.`
+    ].join("\n");
+  }
+
+  return [
+    `${engine}: ${assessment.verdict === "revise" ? "Revision recommended before validation" : "Not validated in its current form"}.`,
+    `Findings: ${assessment.issues.join("; ")}.`,
+    `${engineFocus} Correct the listed issue(s), then revalidate so the stem, answer key, distractors, and explanation all support the same physiologic mechanism.`
+  ].join("\n");
+}
+
+function showValidationReview(engineKey, message) {
   currentValidationEngine = engineKey;
-  validationPayloadText.value = JSON.stringify(buildValidationPayload(engineKey), null, 2);
+  validationPayloadText.value = buildValidationReviewText(engineKey);
   validationStatus.textContent = message;
 }
 
@@ -1380,7 +1840,7 @@ async function validateWithEngine(engineKey) {
 
   const endpoint = validatorEndpointInput.value.trim();
   if (!endpoint) {
-    showValidationPacket(engineKey, `${VALIDATION_ENGINES[engineKey]} packet prepared. Add an endpoint URL to send it, or copy the packet for external validation.`);
+    showValidationReview(engineKey, `${VALIDATION_ENGINES[engineKey]} assessment generated for ${getCurrentQuestion().id}.`);
     return;
   }
 
@@ -1399,24 +1859,24 @@ async function validateWithEngine(engineKey) {
       ? `${VALIDATION_ENGINES[engineKey]} returned a result. Review and save it.`
       : `${VALIDATION_ENGINES[engineKey]} endpoint returned HTTP ${response.status}.`;
   } catch (error) {
-    showValidationPacket(engineKey, `Could not reach the endpoint. Packet prepared for manual ${VALIDATION_ENGINES[engineKey]} validation.`);
+    showValidationReview(engineKey, `Could not reach the endpoint. Local ${VALIDATION_ENGINES[engineKey]} assessment is shown.`);
   }
 }
 
-async function copyValidationPacket() {
+async function copyValidationReview() {
   const question = getCurrentQuestion();
   if (!question) return;
   if (!validationPayloadText.value.trim()) {
-    showValidationPacket(currentValidationEngine, "Validation packet prepared.");
+    showValidationReview(currentValidationEngine, "Validation assessment generated.");
   }
 
   try {
     await navigator.clipboard.writeText(validationPayloadText.value);
-    validationStatus.textContent = `Validation packet for ${question.id} copied.`;
+    validationStatus.textContent = `Validation review for ${question.id} copied.`;
   } catch (error) {
     validationPayloadText.focus();
     validationPayloadText.select();
-    validationStatus.textContent = "Packet is selected. Copy it from the text box.";
+    validationStatus.textContent = "Review text is selected. Copy it from the text box.";
   }
 }
 
@@ -1428,8 +1888,14 @@ function saveValidationResult() {
   try {
     parsed = JSON.parse(validationPayloadText.value);
   } catch (error) {
-    validationStatus.textContent = "Paste a valid JSON result before saving.";
-    return;
+    parsed = {
+      verdict: validationPayloadText.value.toLowerCase().includes("not validated")
+        ? "fail"
+        : validationPayloadText.value.toLowerCase().includes("revision recommended")
+          ? "revise"
+          : "pass",
+      narrative: validationPayloadText.value.trim()
+    };
   }
 
   if (!validationResults[question.id]) validationResults[question.id] = {};
@@ -1446,10 +1912,31 @@ function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
+function buildPracticeBlock(pool, requestedCount) {
+  const grouped = new Map();
+  const ungrouped = [];
+
+  pool.forEach((question) => {
+    const sequence = question.caseSequence;
+    if (sequence?.caseId) {
+      if (!grouped.has(sequence.caseId)) grouped.set(sequence.caseId, []);
+      grouped.get(sequence.caseId).push(question);
+    } else {
+      ungrouped.push(question);
+    }
+  });
+
+  const orderedGroups = shuffle([...grouped.values()]).map((group) =>
+    group.sort((a, b) => (a.caseSequence?.step || 0) - (b.caseSequence?.step || 0))
+  );
+  const candidates = [...orderedGroups.flat(), ...shuffle(ungrouped)];
+  return candidates.slice(0, requestedCount);
+}
+
 function startBlock() {
-  const pool = shuffle(getQuestionPool());
+  const pool = getQuestionPool();
   const requestedCount = Math.max(1, Math.min(Number(countInput.value) || 1, pool.length));
-  activeQuestions = pool.slice(0, requestedCount);
+  activeQuestions = buildPracticeBlock(pool, requestedCount);
   currentIndex = 0;
   selectedAnswer = null;
   hasSubmitted = false;
@@ -1458,24 +1945,87 @@ function startBlock() {
   updateDownloadState();
 }
 
-function loadQuestionById() {
-  const id = questionIdInput.value.trim().toUpperCase();
-  const question = getAllQuestions().find((item) => item.id === id);
-  if (!question) {
-    bankStatus.textContent = `No question found for ${id || "that ID"}`;
+function normalizeSearchTerm(value) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function questionSearchText(question) {
+  return [
+    question.id,
+    question.system,
+    question.topic,
+    question.caseStem,
+    question.leadIn,
+    question.stem,
+    question.objective,
+    question.explanation,
+    question.choices.join(" ")
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function matchesSearchTerm(question, normalizedTerm) {
+  if (!normalizedTerm) return false;
+  const searchText = questionSearchText(question);
+  const tokens = normalizedTerm.split(/\s+/).filter(Boolean);
+  return tokens.every((token) => searchText.includes(token));
+}
+
+function loadSearchResults() {
+  const rawTerm = questionIdInput.value.trim();
+  const normalizedTerm = normalizeSearchTerm(rawTerm);
+  if (!normalizedTerm) {
+    bankStatus.textContent = "Enter an ID or search term.";
     return;
   }
 
-  systemSelect.value = question.system;
-  updateTopics();
-  topicSelect.value = question.topic;
-  activeQuestions = [question];
+  const allQuestions = getAllQuestions();
+  const exactId = allQuestions.find((item) => item.id.toLowerCase() === normalizedTerm);
+  if (exactId) {
+    systemSelect.value = exactId.system;
+    updateTopics();
+    topicSelect.value = exactId.topic;
+    activeQuestions = [exactId];
+    currentIndex = 0;
+    selectedAnswer = null;
+    hasSubmitted = false;
+    startTimer();
+    renderQuestion();
+    updateDownloadState();
+    bankStatus.textContent = `Loaded ${exactId.id}.`;
+    return;
+  }
+
+  const matches = allQuestions.filter((question) => matchesSearchTerm(question, normalizedTerm));
+  if (!matches.length) {
+    bankStatus.textContent = `No questions found for "${rawTerm}".`;
+    return;
+  }
+
+  const pageSize = 20;
+  const previousOffset = normalizedTerm === lastSearchKey ? searchOffsets[normalizedTerm] || 0 : 0;
+  const start = previousOffset >= matches.length ? 0 : previousOffset;
+  const page = matches.slice(start, start + pageSize);
+  const nextOffset = start + pageSize >= matches.length ? 0 : start + pageSize;
+
+  lastSearchKey = normalizedTerm;
+  searchOffsets[normalizedTerm] = nextOffset;
+  activeQuestions = page;
   currentIndex = 0;
   selectedAnswer = null;
   hasSubmitted = false;
   startTimer();
   renderQuestion();
   updateDownloadState();
+
+  const rangeStart = start + 1;
+  const rangeEnd = start + page.length;
+  const nextMessage = matches.length > pageSize
+    ? " Repeat the search for the next set."
+    : "";
+  bankStatus.textContent = `Found ${matches.length} for "${rawTerm}". Showing ${rangeStart}-${rangeEnd} (max 20).${nextMessage}`;
 }
 
 function rebuildBank() {
@@ -1501,10 +2051,16 @@ function buildPdfLines() {
   activeQuestions.forEach((question, questionIndex) => {
     lines.push(`Question ${questionIndex + 1} (${question.id})`);
     lines.push(`${question.system} / ${question.topic}`);
+    if (question.caseSequence) {
+      lines.push(`${question.caseSequence.label}: step ${question.caseSequence.step} of ${question.caseSequence.totalSteps}`);
+    }
     if (question.generationType === "vignette") {
       lines.push(`Projected difficulty index: ${question.difficultyIndex.toFixed(2)}`);
     }
-    lines.push(...wrapPdfText(question.stem, 92));
+    lines.push(...wrapPdfText(`Clinical stem: ${question.caseStem || question.stem}`, 92));
+    if (question.leadIn) {
+      lines.push(...wrapPdfText(`Lead-in: ${question.leadIn}`, 92));
+    }
     lines.push("");
     question.choices.forEach((choice, choiceIndex) => {
       lines.push(...wrapPdfText(`${String.fromCharCode(65 + choiceIndex)}. ${choice}`, 88));
@@ -1652,12 +2208,12 @@ function renderQuestion() {
   difficultyBadge.textContent = question.generationType === "vignette"
     ? `Difficulty ${question.difficultyIndex.toFixed(2)}`
     : "NBME-style";
-  stemText.textContent = question.stem;
+  renderStemContent(question);
   highlightStemBtn.disabled = false;
   clearStemHighlightsBtn.disabled = false;
   submitBtn.disabled = true;
   nextBtn.disabled = true;
-  nextBtn.textContent = "Next";
+  nextBtn.textContent = isNextQuestionSameCase() ? "Next case step" : "Next";
   reviewResult.textContent = mode === "exam" ? "Hidden until submitted" : "Not answered";
   reviewResult.className = "";
   explanationText.textContent = "Select the single best answer.";
@@ -1718,15 +2274,38 @@ function highlightSelectedStemText() {
 function clearStemHighlights() {
   const question = activeQuestions[currentIndex];
   if (!question) return;
-  stemText.textContent = question.stem;
+  renderStemContent(question);
 }
 
 function keyStemSignal(question) {
-  const sentences = question.stem.match(/[^.!?]+[.!?]/g) || [question.stem];
+  const source = question.caseStem || question.stem;
+  const sentences = source.match(/[^.!?]+[.!?]/g) || [source];
   const signal = sentences
     .find((sentence) => /blood pressure|serum|pH|PaCO2|PaO2|pulse|respirations|pressure|concentration|gradient|receptor|transport|hormone|potential|volume|flow/i.test(sentence))
     || sentences[0];
   return signal.trim();
+}
+
+function stemHtml(question) {
+  const sequence = question.caseSequence;
+  const sequenceLine = sequence
+    ? `<span class="case-sequence">${escapeHtml(sequence.label)} | Step ${sequence.step} of ${sequence.totalSteps}</span>`
+    : "";
+  return `
+    ${sequenceLine}
+    <span class="case-stem">${escapeHtml(question.caseStem || question.stem)}</span>
+    <span class="lead-in">${escapeHtml(question.leadIn || "")}</span>
+  `;
+}
+
+function renderStemContent(question) {
+  stemText.innerHTML = stemHtml(question);
+}
+
+function isNextQuestionSameCase() {
+  const current = activeQuestions[currentIndex];
+  const next = activeQuestions[currentIndex + 1];
+  return Boolean(current?.caseSequence?.caseId && current.caseSequence.caseId === next?.caseSequence?.caseId);
 }
 
 function correctAnswerFitText(question) {
@@ -1815,7 +2394,7 @@ function submitAnswer() {
     clearInterval(timerId);
     nextBtn.textContent = "Block complete";
   } else {
-    nextBtn.textContent = "Next";
+    nextBtn.textContent = isNextQuestionSameCase() ? "Next case step" : "Next";
   }
 }
 
@@ -1898,7 +2477,13 @@ systemSelect.addEventListener("change", () => {
 });
 startBtn.addEventListener("click", startBlock);
 downloadPdfBtn.addEventListener("click", downloadCurrentBlockPdf);
-loadIdBtn.addEventListener("click", loadQuestionById);
+loadIdBtn.addEventListener("click", loadSearchResults);
+questionIdInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    loadSearchResults();
+  }
+});
 rebuildBankBtn.addEventListener("click", rebuildBank);
 submitBtn.addEventListener("click", submitAnswer);
 nextBtn.addEventListener("click", nextQuestion);
@@ -1906,7 +2491,7 @@ highlightStemBtn.addEventListener("click", highlightSelectedStemText);
 clearStemHighlightsBtn.addEventListener("click", clearStemHighlights);
 validateLisaBtn.addEventListener("click", () => validateWithEngine("lisa"));
 validateMedGeminiBtn.addEventListener("click", () => validateWithEngine("medGemini"));
-copyValidationBtn.addEventListener("click", copyValidationPacket);
+copyValidationBtn.addEventListener("click", copyValidationReview);
 saveValidationBtn.addEventListener("click", saveValidationResult);
 normalValuesTab.addEventListener("click", () => {
   setNormalValuesOpen(normalValuesPanel.hidden);

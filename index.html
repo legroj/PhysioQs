@@ -67,11 +67,11 @@
             </div>
           </div>
           <label class="field">
-            <span>Question ID</span>
-            <input id="questionIdInput" type="text" placeholder="CV0001">
+            <span>Search ID or term</span>
+            <input id="questionIdInput" type="text" placeholder="CV0001, ANP, RAAS">
           </label>
           <div class="bank-actions">
-            <button id="loadIdBtn" class="secondary-on-dark" type="button">Load ID</button>
+            <button id="loadIdBtn" class="secondary-on-dark" type="button">Search</button>
             <button id="rebuildBankBtn" class="secondary-on-dark" type="button">Rebuild Bank</button>
           </div>
           <p id="bankStatus" class="bank-status">Stored locally</p>
@@ -175,6 +175,7 @@
                 <tr><th>Alkaline phosphatase</th><td>45-115 U/L</td></tr>
                 <tr><th>Total bilirubin</th><td>0.1-1.2 mg/dL</td></tr>
                 <tr><th>Direct bilirubin</th><td>0.0-0.3 mg/dL</td></tr>
+                <tr><th>Total plasma protein</th><td>6.0-8.0 g/dL</td></tr>
                 <tr><th>Albumin</th><td>3.5-5.0 g/dL</td></tr>
                 <tr><th>Amylase</th><td>25-125 U/L</td></tr>
                 <tr><th>Lipase</th><td>10-140 U/L</td></tr>
@@ -292,9 +293,9 @@
                 <button id="validateLisaBtn" type="button" disabled>LiSA V1.0</button>
                 <button id="validateMedGeminiBtn" type="button" disabled>Med-Gemini 1.5</button>
               </div>
-              <textarea id="validationPayloadText" aria-label="Validation packet and results" placeholder="Validation packet or imported result"></textarea>
+              <textarea id="validationPayloadText" aria-label="Validation assessment and imported results" placeholder="Validation assessment or imported result"></textarea>
               <div class="validation-actions">
-                <button id="copyValidationBtn" type="button" disabled>Copy Packet</button>
+                <button id="copyValidationBtn" type="button" disabled>Copy Review</button>
                 <button id="saveValidationBtn" type="button" disabled>Save Result</button>
               </div>
               <p id="validationStatus" class="validation-status">Start or load a question to prepare validation.</p>
@@ -308,6 +309,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=23"></script>
+    <script src="app.js?v=31"></script>
   </body>
 </html>
