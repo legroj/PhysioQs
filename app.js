@@ -1,6 +1,6 @@
-const STORAGE_KEY = "physioq.questionBank.v11";
+const STORAGE_KEY = "physioq.questionBank.v12";
 const VALIDATION_STORAGE_KEY = "physioq.validationResults.v1";
-const BANK_VERSION = "2026-06-04-independent-nbme-bank-v7";
+const BANK_VERSION = "2026-06-04-independent-nbme-bank-v8";
 const BANK_ASSET_URL = `question-bank.json?v=${BANK_VERSION}`;
 const BASE_QUESTIONS_PER_TOPIC = 0;
 const VIGNETTE_QUESTIONS_PER_TOPIC = 100;
@@ -657,9 +657,10 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
   const concepts = conceptsForTopic(topic);
   const variantIndex = Math.floor(index / concepts.length) % QUESTION_VARIANT_FRAMES.length;
   const variantFrame = QUESTION_VARIANT_FRAMES[variantIndex];
-  const caseStem = isVignette
+  const rawCaseStem = isVignette
     ? buildAdvancedVignetteStem(concept, topic, index, systemSpec.system)
     : `${STEM_CONTEXTS[Math.floor(index / concepts.length) % STEM_CONTEXTS.length]} ${concept.setup}`;
+  const caseStem = sanitizeCaseStem(rawCaseStem, concept.correct, topic, concept);
   const leadIn = nbmeLeadIn(concept.question, topic);
   const caseSequence = null;
 
@@ -695,6 +696,74 @@ function alphabetizedChoices(correct, distractors) {
     choices: rows.map((row) => row.text),
     answer: rows.findIndex((row) => row.isCorrect)
   };
+}
+
+function sanitizeCaseStem(stem, correct, topic, concept) {
+  let cleaned = String(stem || "");
+
+  cleaned = cleaned
+    .replace(/The stem includes enough information to require interpretation of the physiologic pattern rather than recall of an isolated fact\./gi, "")
+    .replace(/Removing the initiating perturbation reduces the abnormal measurement without changing unrelated variables\./gi, "")
+    .replace(/An integrated scenario requires matching the site of action to the direction of the response\./gi, "")
+    .replace(/The finding is reproduced when the same pathway is challenged by a smaller physiologic stimulus\./gi, "")
+    .replace(/The timing of symptoms is aligned with the laboratory sample and the physiologic tracing\./gi, "")
+    .replace(/A tracing and paired laboratory value are obtained during the same clinical event\./gi, "")
+    .replace(/The afferent arteriole constricts\./gi, "After several days of high-dose nonsteroidal anti-inflammatory drug use, renal plasma flow falls and serum creatinine rises.")
+    .replace(/The larger axon conducts the impulse faster while myelin thickness is unchanged\./gi, "The larger-diameter axon has lower calculated internal resistance while myelin thickness and nodal spacing are unchanged.")
+    .replace(/conducts the impulse faster/gi, "has lower calculated internal resistance");
+
+  cleaned = removeExactAnswerPhrase(cleaned, correct, topic, concept);
+  return cleaned.replace(/\s+/g, " ").trim();
+}
+
+function removeExactAnswerPhrase(stem, correct, topic, concept) {
+  const answer = String(correct || "").trim();
+  const words = answer.split(/\s+/).filter(Boolean);
+  if (words.length < 2) return stem;
+
+  const replacement = answerLeakReplacement(answer, topic, concept);
+  const escaped = escapeRegExp(answer).replace(/\\ /g, "\\s+");
+  const phrasePattern = new RegExp(`\\b${escaped}\\b`, "gi");
+  return String(stem || "").replace(phrasePattern, replacement);
+}
+
+function answerLeakReplacement(answer, topic, concept) {
+  const normalized = normalizeText(answer);
+  const replacements = {
+    "increased conduction velocity": "shorter latency over the same distance",
+    "decreased conduction velocity": "longer latency over the affected segment",
+    "increased axoplasmic resistance": "greater resistance to local current spread",
+    "reduced length constant": "less passive current spread between adjacent membrane regions",
+    "osmotic gradient": "a maintained transepithelial osmolality difference",
+    "simple diffusion through the lipid bilayer": "linear uptake that persists despite ATP depletion",
+    "secondary active cotransport": "sodium-dependent uptake despite preserved cellular ATP",
+    "receptor mediated endocytosis": "surface binding followed by coated-pit internalization",
+    "three sodium ions out and two potassium ions in": "loss of the usual ouabain-sensitive sodium and potassium gradients",
+    "decreased gfr": "lower filtration marker clearance",
+    "increased gfr": "higher filtration marker clearance",
+    "decreased renal plasma flow": "lower para-aminohippurate clearance",
+    "increased filtration fraction": "a larger fraction of delivered plasma being filtered"
+  };
+  if (replacements[normalized]) return replacements[normalized];
+
+  const explanation = conciseConceptExplanation(concept?.explanation || "");
+  if (topic === "Body Volume") return "the combined postevent fluid and intravascular marker pattern";
+  if (topic === "Action Potential") return "the nerve conduction pattern";
+  if (topic.includes("Transport")) return "the measured transport pattern";
+  if (topic.includes("Acid-Base")) return "the measured acid-base pattern";
+  if (explanation) return "the physiologic pattern described below";
+  return "the measured physiologic pattern";
+}
+
+function escapeRegExp(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function nbmeLeadIn(question, topic) {
@@ -795,17 +864,18 @@ function buildChoiceExplanations(choices, answerIndex, concept, topic) {
 function incorrectChoiceExplanation(choice, correctChoice, topic, concept) {
   const lowerChoice = String(choice).toLowerCase();
   const lowerCorrect = String(correctChoice).toLowerCase();
+  const physiology = conciseConceptExplanation(concept.explanation);
 
   if (oppositeDirection(lowerChoice, lowerCorrect)) {
-    return `Incorrect. This predicts the opposite direction of the change supported by the vignette. The stem findings fit ${correctChoice}.`;
+    return `Incorrect. This reverses the direction predicted by the physiology in the stem. ${physiology}`;
   }
   if (unrelatedExtreme(lowerChoice)) {
-    return `Incorrect. This option is too absolute or biologically unlikely in the clinical context provided. The measured findings are better explained by ${correctChoice}.`;
+    return `Incorrect. This overstates the process; the case describes a specific physiologic change, not complete loss of the pathway. ${physiology}`;
   }
   if (sameSystemDifferentProcess(lowerChoice, topic)) {
-    return `Incorrect. This is a plausible ${topic} concept, but it would require a different pattern of findings than the one described. The vignette points to ${correctChoice}.`;
+    return `Incorrect. This can be plausible in another ${topic} setting, but it does not match the measured site or direction of change here. ${physiology}`;
   }
-  return `Incorrect. This choice does not account for the timing and measured pattern in the stem. The expected physiologic result is ${correctChoice}.`;
+  return `Incorrect. The stem does not provide the physiologic conditions required for this option. ${physiology}`;
 }
 
 function oppositeDirection(choice, correct) {
@@ -855,9 +925,11 @@ function buildExtraHighClinicalStem(concept, topic, index, system) {
 
 function clinicalTimingDetail(index) {
   const hours = 4 + index;
-  if (hours < 48) return `The current episode began ${hours} hours ago.`;
-  const days = Math.round(hours / 24);
-  return `The current episode began ${days} days ago.`;
+  if (hours < 72) return `The current episode began ${hours} hours ago.`;
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+  if (!remainingHours) return `The current episode began ${days} days ago.`;
+  return `The current episode began ${days} days and ${remainingHours} hours ago.`;
 }
 
 function clinicalOpening(system, topic, index, concept) {
@@ -1143,7 +1215,7 @@ function appliedClinicalCueForConcept(concept, topic, index) {
     return "Cultured cells exposed to ouabain lose their transmembrane sodium and potassium gradients over several hours despite preserved membrane integrity.";
   }
   if (text.includes("aquaporin") || text.includes("osmotic gradient")) {
-    return "During water deprivation, epithelial water flux increases rapidly when ADH is present and a transepithelial osmotic gradient is maintained.";
+    return "During water deprivation, epithelial water flux increases rapidly when ADH is present and a transepithelial osmolality difference is maintained.";
   }
   if (text.includes("ldl") || text.includes("receptor-mediated endocytosis")) {
     return "Cultured fibroblasts bind LDL at the cell surface, but uptake falls markedly when coated-pit formation is disrupted.";
@@ -1161,7 +1233,7 @@ function appliedClinicalCueForConcept(concept, topic, index) {
     return "A nerve recording shows that threshold is reached, but the upstroke amplitude depends on the fraction of available fast sodium channels.";
   }
   if (text.includes("axon diameter")) {
-    return "Nerve conduction testing compares two intact myelinated axons; the larger axon conducts the impulse faster while myelin thickness is unchanged.";
+    return "Nerve conduction testing compares two intact myelinated axons over the same distance; the larger-diameter axon has lower calculated internal resistance while myelin thickness and nodal spacing are unchanged.";
   }
   if (text.includes("myelin") || text.includes("saltatory")) {
     return "Nerve conduction testing shows delayed impulse propagation across a demyelinated segment with increased current leak and loss of saltatory conduction.";
@@ -1238,6 +1310,12 @@ function appliedClinicalCueForConcept(concept, topic, index) {
   if (text.includes("airway radius") || text.includes("bronchoconstriction")) {
     return "A patient with wheezing has reduced expiratory airflow, increased work of breathing, and improvement after inhaled bronchodilator therapy.";
   }
+  if (topic === "Gas Exchange" && (text.includes("paco2") || text.includes("hypoventilation") || text.includes("co2"))) {
+    return "During shallow breathing, end-tidal carbon dioxide rises and arterial pH falls while serum bicarbonate has not yet changed substantially.";
+  }
+  if (topic === "Acid-Base Balance" && (text.includes("paco2") || text.includes("acid-base") || text.includes("bicarbonate"))) {
+    return "Arterial blood gas and serum chemistry are obtained after an acute ventilation change to separate the primary disturbance from compensation.";
+  }
   if (text.includes("paco2") || text.includes("acid-base") || text.includes("bicarbonate")) {
     return "Arterial blood gas and serum chemistry are obtained at the same time, allowing the primary disturbance to be distinguished from compensation.";
   }
@@ -1247,8 +1325,26 @@ function appliedClinicalCueForConcept(concept, topic, index) {
   if (text.includes("anp") || text.includes("atrial natriuretic")) {
     return "After rapid intravascular volume expansion, atrial pressure rises and urine sodium excretion increases during the next hour.";
   }
+  if (topic === "Urine Concentration Mechanism" && (text.includes("adh") || text.includes("medullary") || text.includes("dilute urine") || text.includes("urea"))) {
+    return "During a water-deprivation study, plasma osmolality rises, ADH is present, and urine osmolality is compared with the corticomedullary solute gradient.";
+  }
+  if (topic === "Volume Regulation" && (text.includes("renin") || text.includes("aldosterone") || text.includes("adh"))) {
+    return "After an acute fall in effective arterial volume, urine sodium, plasma renin activity, aldosterone, and ADH are measured before volume replacement.";
+  }
+  if (topic === "Renal Cardiovascular" && (text.includes("renin") || text.includes("aldosterone") || text.includes("adh") || text.includes("raas"))) {
+    return "During early heart failure physiology, renal perfusion pressure is low, plasma renin activity rises, and urinary sodium handling is compared with systemic arterial pressure.";
+  }
+  if (topic === "Multisystem Homeostasis" && (text.includes("renin") || text.includes("aldosterone") || text.includes("adh") || text.includes("raas") || text.includes("sympathetic"))) {
+    return "After acute hemorrhage, carotid baroreceptor firing, sympathetic outflow, RAAS markers, ADH, thirst, urine sodium, and urine volume are measured during early compensation.";
+  }
   if (text.includes("renin") || text.includes("aldosterone") || text.includes("adh")) {
     return "Effective arterial volume falls, urine sodium decreases, and neurohormonal markers are measured before volume replacement.";
+  }
+  if (topic === "Endocrine & Metabolism" && (text.includes("glucagon") || text.includes("fasting") || text.includes("gluconeogenesis"))) {
+    return "During a supervised fast, plasma glucose, ketones, insulin, glucagon, cortisol, and hepatic glucose production are measured before dextrose is given.";
+  }
+  if (topic === "Multisystem Homeostasis" && (text.includes("glucagon") || text.includes("fasting") || text.includes("ketogenesis") || text.includes("lipolysis"))) {
+    return "During prolonged fasting, insulin falls, glucagon rises, free fatty acids increase, beta-hydroxybutyrate appears, and renal acid excretion is followed over time.";
   }
   if (text.includes("glucagon") || text.includes("fasting") || text.includes("gluconeogenesis")) {
     return "Plasma glucose is low, insulin is suppressed, glucagon is elevated, and hepatic glucose output increases during the fast.";
@@ -1256,19 +1352,42 @@ function appliedClinicalCueForConcept(concept, topic, index) {
   if (text.includes("insulin")) {
     return "After a carbohydrate-rich meal, plasma glucose rises and insulin-sensitive tissues increase glucose uptake and storage.";
   }
-  if (text.includes("thyroid")) {
+  if (topic === "Calcium Metabolism" && (text.includes("calcium") || text.includes("pth") || text.includes("parathyroid") || text.includes("vitamin d"))) {
+    return "Serum ionized calcium, phosphate, PTH, vitamin D activity, and urinary calcium handling are interpreted together after the abnormal value is found.";
+  }
+  if (topic === "Thyroid" && /\bthyroid\b/.test(text)) {
     return "TSH, free thyroxine, heart rate, and heat intolerance are interpreted together to determine the direction of thyroid feedback.";
   }
   if (text.includes("adrenal")) {
     return "Morning cortisol, ACTH, blood pressure, and serum electrolytes are interpreted together during evaluation of adrenal function.";
   }
+  if (topic === "Hypothalamic-Pituitary Axis" && (text.includes("pituitary") || text.includes("gnrh") || text.includes("hypothalamic"))) {
+    return "A portal venous sample and paired target-gland hormone levels are reviewed to localize whether the signal originates in the hypothalamus or anterior pituitary.";
+  }
+  if (topic === "Pregnancy and Lactation" && (text.includes("pituitary") || text.includes("oxytocin") || text.includes("prolactin") || text.includes("lactation"))) {
+    return "During postpartum feeding, nipple stimulation is followed by milk ejection within minutes while milk production over the next day is tracked separately.";
+  }
+  if (topic === "Puberty and Sexual Differentiation" && (text.includes("pituitary") || text.includes("gnrh") || text.includes("puberty") || text.includes("sexual"))) {
+    return "A pubertal evaluation compares nocturnal GnRH pulsatility, gonadotropin secretion, gonadal steroid levels, and development of secondary sex characteristics.";
+  }
   if (text.includes("pituitary") || text.includes("gnrh") || text.includes("hypothalamic")) {
     return "Pituitary hormone levels are compared with target-gland hormone levels to determine whether feedback is intact.";
   }
-  if (text.includes("motility") || text.includes("secretion") || text.includes("digestion") || text.includes("absorption") || text.includes("bile")) {
-    return "Symptoms are correlated with a meal challenge, luminal contents, and the relevant secretory, motility, or absorptive measurement.";
+  if ([
+    "Motility",
+    "Gastric Secretion",
+    "Digestion and Absorption",
+    "Hepatic Physiology",
+    "Exocrine Pancreas",
+    "Motility Patterns",
+    "Salivary Secretion",
+    "Carbohydrate Digestion",
+    "Protein Digestion",
+    "Lipid Digestion",
+    "GI & Autonomic System"
+  ].includes(topic)) {
+    return topicMeasurementDetail(topic, index);
   }
-
   return topicMeasurementDetail(topic, index);
 }
 
@@ -1595,8 +1714,12 @@ function topicMeasurementDetail(topic, index) {
     "A table compares the measured variable with an adjacent physiologic value from the same organ system."
   ];
 
-  const items = details[topic] || defaultDetails;
-  return items[index % items.length];
+  const items = details[topic];
+  if (items) return items[index % items.length];
+
+  const legacyDetail = legacyAdvancedDataForTopic(topic, index);
+  if (legacyDetail && !defaultDetails.includes(legacyDetail)) return legacyDetail;
+  return `${topicClinicalMeasurementContext(topic)} ${legacyDetail || defaultDetails[index % defaultDetails.length]}`;
 }
 
 function legacyIntegratedClueForConcept(concept, topic) {
