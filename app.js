@@ -1,6 +1,6 @@
-const STORAGE_KEY = "physioq.questionBank.v7";
+const STORAGE_KEY = "physioq.questionBank.v8";
 const VALIDATION_STORAGE_KEY = "physioq.validationResults.v1";
-const BANK_VERSION = "2026-06-04-stem-cleanup-bank-v3";
+const BANK_VERSION = "2026-06-04-nbme-stem-bank-v4";
 const BANK_ASSET_URL = `question-bank.json?v=${BANK_VERSION}`;
 const BASE_QUESTIONS_PER_TOPIC = 0;
 const VIGNETTE_QUESTIONS_PER_TOPIC = 100;
@@ -662,7 +662,7 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
   const caseStem = isVignette
     ? buildAdvancedVignetteStem(concept, topic, index, systemSpec.system)
     : `${STEM_CONTEXTS[Math.floor(index / concepts.length) % STEM_CONTEXTS.length]} ${concept.setup}`;
-  const leadIn = concept.question;
+  const leadIn = nbmeLeadIn(concept.question, topic);
   const caseSequence = isVignette ? buildCaseSequence(systemSpec, topic, index, concepts.length) : null;
 
   return {
@@ -683,14 +683,228 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
   };
 }
 
+function nbmeLeadIn(question, topic) {
+  const normalized = question.trim().toLowerCase();
+  if (normalized === "which effect is expected?" || normalized === "which effect is most likely?") {
+    if (topic === "Glomerular Filtration") {
+      return "Which of the following is the most likely change in glomerular filtration?";
+    }
+    if (topic === "Body Volume") {
+      return "Which of the following is the most likely body-fluid compartment pattern after equilibration?";
+    }
+    return "Which of the following is the most likely physiologic consequence of these findings?";
+  }
+  if (normalized === "which physiologic response is most likely?") {
+    return "Which of the following physiologic responses is most likely?";
+  }
+  return question;
+}
+
 function buildAdvancedVignetteStem(concept, topic, index, system) {
   const setting = nbmeClinicalCaseForSystem(system, topic, index, concept);
-  const frame = topic === "Body Volume"
-    ? bodyVolumeObservationDetail(index)
-    : CASE_OBSERVATION_DETAILS[Math.floor(index / 5) % CASE_OBSERVATION_DETAILS.length];
-  const clue = integratedClueForConcept(concept, topic, index);
-  const setup = topic === "Body Volume" ? "" : ` ${concept.setup}`;
-  return `${setting} ${frame} ${clue}${setup}`;
+  const detail = topic === "Body Volume" ? "" : ` ${topicClinicalMeasurementContext(topic)} ${nbmeCaseDetail(topic, index)}`;
+  const finding = nbmeAppliedFindingForConcept(concept, topic, index);
+  return `${setting}${detail} ${finding}`;
+}
+
+function topicClinicalMeasurementContext(topic) {
+  const contexts = {
+    "Resting Membrane Potential": "The chart includes resting voltage and ion-gradient measurements from the symptomatic interval.",
+    "Action Potential": "The chart includes action-potential upstroke, refractory-period, or conduction measurements from the symptomatic interval.",
+    "Synaptic Transmission": "The chart includes presynaptic release and postsynaptic potential measurements from the same stimulation protocol.",
+    "Transport Mechanisms": "The chart includes transporter flux data with ATP status, ion gradients, and substrate concentration documented.",
+    "Excitable Cells": "The chart includes excitability measurements from nerve, skeletal muscle, smooth muscle, or cardiac pacemaker cells.",
+    "Mechanics of Contraction": "The chart includes muscle length, load, tension, and timing of stimulation during the symptomatic episode.",
+    "Excitation-Contraction Coupling": "The chart includes membrane excitation, calcium handling, and force generation measurements.",
+    "Glomerular Filtration": "The chart includes renal plasma flow, filtration markers, and glomerular pressure estimates.",
+    "Tubular Electrolyte Handling": "The chart includes urine electrolytes, segment-specific transporter effects, and paired serum values.",
+    "Urine Concentration Mechanism": "The chart includes plasma osmolality, urine osmolality, ADH activity, and medullary gradient data.",
+    "Volume Regulation": "The chart includes effective arterial volume, urine sodium, renin, aldosterone, and ADH measurements.",
+    "Renal Acid-Base Physiology": "The chart includes arterial blood gas values, serum electrolytes, urine pH, and net acid excretion.",
+    "Cardiovascular & Respiratory": "The chart includes cardiac output, arterial oxygen content, ventilation, and pulmonary perfusion measurements.",
+    "Renal Cardiovascular": "The chart includes renal perfusion, arterial pressure, RAAS activity, and urinary sodium handling.",
+    "Renal & Acid-Base": "The chart includes arterial blood gas values, serum electrolytes, and renal acid-excretion measurements.",
+    "Endocrine & Metabolism": "The chart includes glucose, insulin, glucagon, cortisol, ketones, and substrate-use measurements.",
+    "Neuro-Endocrine Integration": "The chart includes autonomic tone, hypothalamic-pituitary signaling, and target-organ hormone responses.",
+    "GI & Autonomic System": "The chart includes autonomic input, motility, secretion, and mucosal blood-flow measurements.",
+    "Multisystem Homeostasis": "The chart includes cardiovascular, renal, endocrine, and metabolic measurements from early compensation."
+  };
+  return contexts[topic] || `The chart includes ${topic.toLowerCase()} measurements from the same clinical encounter.`;
+}
+
+function nbmeCaseDetail(topic, index) {
+  const renalDetails = [
+    "Blood pressure is 132/78 mm Hg, and urinalysis shows no protein or blood.",
+    "The medication list and fluid balance record are reviewed before the laboratory values are interpreted.",
+    "Serum sodium is 140 mEq/L, and plasma protein concentration is within the reference range unless otherwise noted.",
+    "The sample is obtained before dialysis, diuretics, or intravenous albumin are given.",
+    "A prior outpatient creatinine value is available for comparison.",
+    "Urine output over the preceding 6 hours is documented in the chart.",
+    "No fever, rash, or peripheral edema is present on examination.",
+    "The clinician reviews renal plasma flow and clearance data from the same interval.",
+    "The abnormality is detected before long-term tubular adaptation occurs.",
+    "The patient has no history of chronic kidney disease.",
+    "Mean arterial pressure is stable during the collection period.",
+    "The urine collection is timed and complete.",
+    "Serum albumin is measured with the same blood sample.",
+    "The bladder is catheterized to verify urine output during the observation period.",
+    "Renal ultrasound is reviewed when obstruction is suspected.",
+    "The patient has not received contrast material during the preceding week.",
+    "Fractional excretion and clearance data are calculated from paired serum and urine samples.",
+    "The clinician compares the current values with baseline measurements from earlier in the visit.",
+    "No hemolysis or laboratory artifact is reported.",
+    "The physiologic interpretation is made from the earliest available measurements."
+  ];
+
+  const generalDetails = [
+    "Vital signs and the relevant laboratory values are obtained during the same clinical encounter.",
+    "The medication list, timing of symptoms, and most relevant measured variable are reviewed together.",
+    "A baseline value from earlier in the visit is available for comparison.",
+    "The physical examination is otherwise unchanged during the observation period.",
+    "The sample is obtained before definitive treatment is started.",
+    "A same-day laboratory panel is interpreted with the physiologic measurement.",
+    "The clinician confirms that the exposure occurred before the abnormal value was measured.",
+    "No unrelated organ-system abnormality is found on the initial evaluation.",
+    "The measured variable is compared with an adjacent physiologic variable from the same system.",
+    "The finding is assessed before chronic compensation would be expected.",
+    "The patient is hemodynamically stable at the time of measurement.",
+    "The relevant tracing and laboratory value are interpreted from the same interval.",
+    "The symptom onset, exposure, and objective measurement occur during the same interval.",
+    "The abnormal measurement is reproducible on a repeat sample.",
+    "The finding occurs without evidence of tissue necrosis or structural injury.",
+    "The clinician reviews the exposure, symptoms, and objective measurement before choosing the mechanism.",
+    "The paired measurements are internally consistent and obtained before additional medication is given.",
+    "The patient has no prior disorder known to alter the measured variable.",
+    "The result is compared with the expected value for a healthy person under the same conditions.",
+    "The history and measured value are documented in the same clinical note."
+  ];
+
+  const details = topic.includes("Renal") || topic === "Glomerular Filtration" || topic === "Tubular Electrolyte Handling" || topic === "Urine Concentration Mechanism" || topic === "Volume Regulation" || topic === "Renal Acid-Base Physiology"
+    ? renalDetails
+    : generalDetails;
+  return details[Math.floor(index / 5) % details.length];
+}
+
+function nbmeAppliedFindingForConcept(concept, topic, index) {
+  if (topic === "Body Volume") {
+    return `${bodyVolumeObservationDetail(index)} ${integratedClueForConcept(concept, topic, index)}`;
+  }
+  return appliedClinicalCueForConcept(concept, topic, index);
+}
+
+function appliedClinicalCueForConcept(concept, topic, index) {
+  const text = `${topic} ${concept.setup} ${concept.correct} ${concept.explanation} ${concept.objective}`.toLowerCase();
+
+  if (topic === "Glomerular Filtration") {
+    if (text.includes("efferent arteriole constricts")) {
+      return "The patient has low effective arterial volume with increased plasma renin activity. Renal plasma flow decreases, filtration fraction increases, and the early change in filtration pressure is interpreted from the clearance data.";
+    }
+    if (text.includes("afferent arteriole constricts")) {
+      return "After several days of high-dose nonsteroidal anti-inflammatory drug use, serum creatinine rises from 0.9 to 1.5 mg/dL and renal plasma flow falls while plasma protein concentration is unchanged.";
+    }
+    if (text.includes("freely filtered")) {
+      return "A marker is infused until its plasma concentration is stable; it appears in Bowman space freely and its urinary excretion rate equals its filtered load.";
+    }
+    if (text.includes("plasma protein concentration rises")) {
+      return "After marked water loss, total plasma protein rises from 7.0 to 9.0 g/dL while arterial pressure is restored, and filtration markers are remeasured.";
+    }
+    if (text.includes("tubular obstruction") || text.includes("bowman space")) {
+      return "A patient with acute flank pain has unilateral hydronephrosis. Pressure proximal to the obstruction rises while renal arterial pressure is unchanged.";
+    }
+  }
+
+  if (text.includes("acetylcholinesterase")) {
+    return "After exposure to an organophosphate insecticide, neuromuscular recordings show normal presynaptic vesicle release but a prolonged end-plate current after each motor nerve stimulus.";
+  }
+  if (text.includes("botulinum") || text.includes("snare")) {
+    return "A patient with descending weakness after eating home-preserved food has normal motor nerve action potentials but markedly reduced quantal acetylcholine release at the neuromuscular junction.";
+  }
+  if (text.includes("presynaptic") && text.includes("calcium")) {
+    return "A patient with proximal weakness has a small end-plate potential at baseline that improves when extracellular calcium is increased during repetitive stimulation.";
+  }
+  if (text.includes("lipid-soluble steroid") || text.includes("simple diffusion through the lipid bilayer")) {
+    return "Cellular uptake of a glucocorticoid remains linear as extracellular concentration increases and is unchanged by ATP depletion or collapse of the sodium gradient.";
+  }
+  if (text.includes("sodium") && text.includes("glucose") && text.includes("secondary active")) {
+    return "In an intestinal epithelial assay, glucose uptake decreases when luminal sodium is removed even though cellular ATP concentration remains normal.";
+  }
+  if (text.includes("sodium-potassium atpase") || text.includes("three sodium ions out")) {
+    if (topic === "Resting Membrane Potential") {
+      return "After exposure to a cardiac glycoside, intracellular sodium gradually rises and intracellular potassium falls; the resting membrane voltage drifts as the ion gradients dissipate.";
+    }
+    return "Cultured cells exposed to ouabain lose their transmembrane sodium and potassium gradients over several hours despite preserved membrane integrity.";
+  }
+  if (text.includes("aquaporin") || text.includes("osmotic gradient")) {
+    return "During water deprivation, epithelial water flux increases rapidly when ADH is present and a transepithelial osmotic gradient is maintained.";
+  }
+  if (text.includes("ldl") || text.includes("receptor-mediated endocytosis")) {
+    return "Cultured fibroblasts bind LDL at the cell surface, but uptake falls markedly when coated-pit formation is disrupted.";
+  }
+  if (text.includes("extracellular potassium")) {
+    return "During an episode of weakness, serum potassium is 5.8 mEq/L and a nerve recording shows the resting voltage is less negative than the patient's baseline value.";
+  }
+  if (text.includes("potassium leak")) {
+    return "After exposure to an ion-channel toxin, potassium leak conductance falls while extracellular sodium and calcium concentrations remain normal.";
+  }
+  if (text.includes("high resting permeability to potassium")) {
+    return "A membrane recording shows resting potassium conductance is much greater than resting sodium conductance, and intracellular impermeant anions are preserved.";
+  }
+  if (text.includes("voltage-gated sodium") || text.includes("rapid depolarization")) {
+    return "A nerve recording shows that threshold is reached, but the upstroke amplitude depends on the fraction of available fast sodium channels.";
+  }
+  if (text.includes("myelin") || text.includes("saltatory")) {
+    return "Nerve conduction testing shows delayed impulse propagation across a demyelinated segment with increased current leak and loss of saltatory conduction.";
+  }
+  if (text.includes("absolute refractory")) {
+    return "A second suprathreshold stimulus delivered immediately after the first fails to produce another action potential, even though the membrane is depolarized.";
+  }
+  if (text.includes("chloride")) {
+    if (topic === "Resting Membrane Potential") {
+      return "A membrane recording shows chloride equilibrium potential is close to the resting potential, and opening the conductance stabilizes the cell below threshold.";
+    }
+    return "An inhibitory input increases postsynaptic chloride conductance, and the membrane potential moves closer to the chloride equilibrium potential during the recording.";
+  }
+  if (text.includes("frank-starling") || text.includes("preload")) {
+    return "During hemodynamic monitoring, end-diastolic volume increases after a fluid bolus while contractility and afterload are unchanged.";
+  }
+  if (text.includes("contractility") || text.includes("end-systolic")) {
+    return "After an inotropic drug is started, the pressure-volume loop shows a lower end-systolic volume at the same preload.";
+  }
+  if (text.includes("pr interval") || text.includes("av nodal")) {
+    return "An ECG obtained after a rate-controlling drug shows delayed conduction between atrial depolarization and ventricular activation.";
+  }
+  if (text.includes("qrs")) {
+    return "An ECG shows widened ventricular depolarization with unchanged atrial activation.";
+  }
+  if (text.includes("qt interval")) {
+    return "A medication prolongs the interval from onset of ventricular depolarization to completion of ventricular repolarization.";
+  }
+  if (text.includes("surfactant")) {
+    return "A premature newborn has increased opening pressure and low lung compliance shortly after birth.";
+  }
+  if (text.includes("airway radius") || text.includes("bronchoconstriction")) {
+    return "A patient with wheezing has reduced expiratory airflow, increased work of breathing, and improvement after inhaled bronchodilator therapy.";
+  }
+  if (text.includes("paco2") || text.includes("acid-base") || text.includes("bicarbonate")) {
+    return "Arterial blood gas and serum chemistry are obtained at the same time, allowing the primary disturbance to be distinguished from compensation.";
+  }
+  if (text.includes("baroreceptor") || text.includes("carotid sinus")) {
+    return "Immediately after standing, arterial pressure falls transiently and carotid sinus stretch-sensitive afferent firing decreases.";
+  }
+  if (text.includes("anp") || text.includes("atrial natriuretic")) {
+    return "After rapid intravascular volume expansion, atrial pressure rises and urine sodium excretion increases during the next hour.";
+  }
+  if (text.includes("renin") || text.includes("aldosterone") || text.includes("adh")) {
+    return "Effective arterial volume falls, urine sodium decreases, and neurohormonal markers are measured before volume replacement.";
+  }
+  if (text.includes("insulin") || text.includes("glucagon") || text.includes("thyroid") || text.includes("adrenal") || text.includes("pituitary")) {
+    return "Hormone levels and target-organ responses are measured together before and after a controlled change in feedback stimulus.";
+  }
+  if (text.includes("motility") || text.includes("secretion") || text.includes("digestion") || text.includes("absorption") || text.includes("bile")) {
+    return "Symptoms are correlated with a meal challenge, luminal contents, and the relevant secretory, motility, or absorptive measurement.";
+  }
+
+  return topicMeasurementDetail(topic, index);
 }
 
 function bodyVolumeObservationDetail(index) {
@@ -741,6 +955,30 @@ function slugId(value) {
 function nbmeClinicalCaseForSystem(system, topic, index, concept) {
   const caseIndex = Math.floor(index / 5);
   const text = `${topic} ${concept.setup} ${concept.correct} ${concept.explanation} ${concept.objective}`.toLowerCase();
+
+  if (system === "Integrated Systems") {
+    if (topic === "Cardiovascular & Respiratory") {
+      return "A patient with exertional dyspnea has cardiac output, arterial oxygen content, ventilation, and pulmonary blood flow measured during evaluation.";
+    }
+    if (topic === "Renal Cardiovascular") {
+      return "A patient with reduced effective arterial volume has arterial pressure, renal perfusion, RAAS activity, and urinary sodium handling measured during early compensation.";
+    }
+    if (topic === "Renal & Acid-Base") {
+      return "A patient with vomiting, diarrhea, or altered ventilation has arterial blood gas values, serum electrolytes, and urinary acid excretion measured before treatment.";
+    }
+    if (topic === "Endocrine & Metabolism") {
+      return "A patient with prolonged fasting or abnormal glucose regulation has insulin, glucagon, cortisol, ketones, and substrate availability measured during symptoms.";
+    }
+    if (topic === "Neuro-Endocrine Integration") {
+      return "A patient under acute physiologic stress has autonomic tone, hypothalamic-pituitary signaling, hormone levels, and target-organ responses measured together.";
+    }
+    if (topic === "GI & Autonomic System") {
+      return "A patient with postprandial abdominal symptoms has autonomic input, gastric secretion, intestinal motility, and mucosal blood flow assessed after a meal.";
+    }
+    if (topic === "Multisystem Homeostasis") {
+      return "A patient with acute volume loss, fasting, or systemic inflammation has cardiovascular, renal, endocrine, and metabolic responses measured during initial stabilization.";
+    }
+  }
 
   if (topic === "Renal Cardiovascular") {
     return "A 66-year-old patient with decompensated heart failure has dyspnea, elevated jugular venous pressure, bilateral leg edema, and reduced forward cardiac output. Renal perfusion pressure, atrial stretch, sympathetic tone, RAAS activity, natriuretic peptide release, and urinary sodium handling are measured together.";
@@ -818,7 +1056,7 @@ function nbmeClinicalCaseForSystem(system, topic, index, concept) {
     return "A patient has arterial blood gas and serum chemistry testing after an acute change in ventilation. pH, PaCO2, bicarbonate, and expected compensation are interpreted together.";
   }
   if (text.includes("glomerular") || text.includes("gfr")) {
-    return "A patient undergoes renal clearance testing after a targeted change in afferent or efferent arteriolar tone. Glomerular hydrostatic pressure, oncotic pressure, and filtration rate are compared.";
+    return "A 67-year-old patient is evaluated for an acute change in kidney function after a medication exposure, volume change, or urinary tract obstruction. Serum creatinine, urine flow, renal plasma flow, and filtration markers are reviewed together.";
   }
   if (text.includes("collecting duct") || text.includes("adh") || text.includes("urine osmolality")) {
     return "A patient with abnormal thirst and urine volume has plasma osmolality, ADH activity, collecting duct water permeability, and urine osmolality measured during a water deprivation study.";
@@ -839,12 +1077,12 @@ function nbmeClinicalCaseForSystem(system, topic, index, concept) {
   const sharedCases = {
     "Cellular & Muscle Physiology": [
       "A 23-year-old man develops episodic weakness after vigorous exercise. Neurologic examination is normal between episodes, and symptoms correlate with a reversible change in membrane excitability on nerve testing.",
-      "A 31-year-old woman has fluctuating muscle fatigability during repetitive stimulation testing. Compound muscle action potentials and synaptic responses are measured before and after a targeted pharmacologic perturbation.",
+      "A 31-year-old woman has fluctuating muscle fatigability that worsens with repeated use. Compound muscle action potentials and synaptic responses are measured during the evaluation.",
       "A 19-year-old student develops cramps after prolonged heat exposure. A skeletal muscle biopsy is studied ex vivo while extracellular ions, ATP availability, and membrane conductance are changed one at a time.",
       "A 42-year-old patient taking an investigational medication develops transient paresthesias. Patch-clamp recordings from excitable cells show an isolated change in channel or transporter function with preserved cell viability."
     ],
     Cardiovascular: [
-      "A 68-year-old man has exertional dyspnea and reduced exercise tolerance. Blood pressure, heart sounds, ECG intervals, and pressure-volume measurements are obtained during a controlled change in preload or autonomic tone.",
+      "A 68-year-old man has exertional dyspnea and reduced exercise tolerance. Blood pressure, heart sounds, ECG intervals, and pressure-volume measurements are reviewed during evaluation.",
       "A 56-year-old woman becomes lightheaded after standing from bed. Pulse, arterial pressure, venous return, and baroreceptor-mediated responses are measured during the first minute after standing.",
       "A 63-year-old patient with ankle swelling undergoes hemodynamic testing. Capillary pressures, venous pressures, cardiac output, and neurohormonal responses are compared before and after a targeted intervention.",
       "A 45-year-old patient is evaluated after an abnormal screening ECG. Electrical timing is compared with mechanical events while atrial, AV nodal, and ventricular conduction are assessed separately."
@@ -857,7 +1095,7 @@ function nbmeClinicalCaseForSystem(system, topic, index, concept) {
     ],
     Renal: [
       "A 54-year-old man with vomiting and orthostatic symptoms has serum electrolytes, arterial blood gases, urine electrolytes, and renal clearance measurements obtained before treatment.",
-      "A 44-year-old woman receives a diuretic during a renal physiology study. GFR, tubular solute handling, medullary osmolality, and urine composition are measured at baseline and after the drug takes effect.",
+      "A 44-year-old woman develops polyuria after receiving a diuretic. GFR, tubular solute handling, medullary osmolality, and urine composition are measured after the drug takes effect.",
       "A 70-year-old patient with reduced effective arterial volume has renin, aldosterone, ADH, urine sodium, and free-water clearance measured during early compensation.",
       "A 22-year-old volunteer undergoes water deprivation followed by desmopressin. Plasma osmolality, urine osmolality, and collecting duct water handling are compared over time."
     ],
@@ -889,29 +1127,29 @@ function integratedSettingForSystem(system, topic, index) {
   const topicLower = topic.toLowerCase();
   if (system === "Cellular & Muscle Physiology") {
     if (topicLower.includes("transport")) {
-      return "In an epithelial cell transport assay, transmembrane solute movement is measured while ATP availability, ion gradients, and carrier saturation are varied.";
+      return "A patient is evaluated after a medication alters epithelial solute handling. Transmembrane solute movement is measured with ATP availability, ion gradients, and carrier saturation documented.";
     }
     if (topicLower.includes("contraction") || topicLower.includes("coupling")) {
-      return "In an isolated muscle preparation, membrane excitation, cytosolic calcium, and force generation are recorded during a single controlled perturbation.";
+      return "A patient with episodic weakness undergoes neuromuscular testing. Membrane excitation, cytosolic calcium signaling, and force generation are recorded during the evaluation.";
     }
-    return "In a membrane physiology preparation, voltage, conductance, and ion gradients are recorded before and after a single controlled perturbation.";
+    return "A patient with episodic weakness undergoes nerve and muscle testing. Voltage, conductance, and ion gradients are recorded during the symptomatic period.";
   }
   if (system === "Cardiovascular") {
-    return "During cardiovascular monitoring, pressure, flow, volume, or electrical timing is measured while the relevant load, autonomic input, or vascular tone is changed.";
+    return "A patient is evaluated for exertional symptoms or lightheadedness. Pressure, flow, volume, and electrical timing are measured during the clinical assessment.";
   }
   if (system === "Respiratory") {
-    return "During pulmonary physiology testing, ventilation, perfusion, gas tensions, and mechanics are measured during a controlled change in airflow or inspired gas.";
+    return "A patient with dyspnea undergoes spirometry and arterial blood gas testing. Ventilation, perfusion, gas tensions, and mechanics are interpreted together.";
   }
   if (system === "Renal") {
-    return "During renal physiology testing, filtered load, tubular transport, urine composition, and effective arterial volume are compared after a targeted perturbation.";
+    return "A patient with a change in urine output or kidney function has filtered load, tubular transport, urine composition, and effective arterial volume assessed together.";
   }
   if (system === "Reproductive & Endocrine") {
-    return "During endocrine physiology testing, hormone concentration, target-organ response, and feedback signals are measured after a controlled change in stimulus.";
+    return "A patient with symptoms of endocrine dysfunction has hormone concentration, target-organ response, and feedback signals measured at the same visit.";
   }
   if (system === "Gastrointestinal") {
-    return "During gastrointestinal physiology testing, secretion, motility, digestion, absorption, and autonomic input are compared after a targeted perturbation.";
+    return "A patient with postprandial symptoms has secretion, motility, digestion, absorption, and autonomic input assessed after a standardized meal.";
   }
-  return "During an integrated physiology study, paired measurements from the relevant organ systems are obtained before and after a targeted perturbation.";
+  return "A patient with a multisystem physiologic disturbance has paired measurements from the relevant organ systems interpreted together.";
 }
 
 function integratedClueForConcept(concept, topic, index = 0) {
