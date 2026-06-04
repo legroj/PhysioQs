@@ -1,6 +1,6 @@
 const STORAGE_KEY = "physioq.questionBank.v6";
 const VALIDATION_STORAGE_KEY = "physioq.validationResults.v1";
-const BANK_VERSION = "2026-06-03-body-volume-renal-bank";
+const BANK_VERSION = "2026-06-04-stem-cleanup-bank-v2";
 const BANK_ASSET_URL = `question-bank.json?v=${BANK_VERSION}`;
 const BASE_QUESTIONS_PER_TOPIC = 0;
 const VIGNETTE_QUESTIONS_PER_TOPIC = 100;
@@ -21,27 +21,27 @@ const STEM_CONTEXTS = [
 
 const DIFFICULTY_VALUES = [0.80, 0.82, 0.84, 0.86, 0.88, 0.90, 0.91, 0.92, 0.94, 0.95];
 
-const INTEGRATED_STEM_FRAMES = [
-  "The baseline and postintervention measurements are obtained under the same recording conditions.",
-  "The response begins during the first recording interval and moves back toward baseline when the perturbation is removed.",
-  "A matched control preparation preserves the adjacent pathway, localizing the change to the measured physiologic step.",
-  "Changing the driving force changes the measured response in the predicted direction.",
-  "The abnormal variable changes before a downstream compensatory response can account for the finding.",
-  "Repeating the perturbation reproduces the same direction of change at a lower stimulus intensity.",
-  "The paired measurement separates the initiating mechanism from the compensatory consequence.",
-  "The finding is present at the site where the relevant transporter, channel, receptor, enzyme, or contractile protein is active.",
-  "Restoring the relevant gradient, signal, or substrate moves the measurement back toward baseline.",
-  "The response is confined to the tissue in which the mechanism normally controls the measured variable.",
-  "The abnormal measurement appears before any change in protein expression or tissue structure is detectable.",
-  "The dose-response relationship changes in the direction predicted by the altered physiologic step.",
-  "The paired control shows intact perfusion, oxygen delivery, and energy availability during the measurement.",
-  "A second recording confirms that the upstream stimulus is intact while the downstream response is altered.",
-  "Removing the initiating perturbation reduces the abnormal measurement without changing unrelated variables.",
-  "The magnitude of the response follows the relevant gradient, receptor signal, enzyme activity, or mechanical load.",
-  "The time course matches a direct physiologic effect rather than a delayed structural adaptation.",
-  "A normal adjacent measurement rules out global failure of the organ system.",
-  "The finding is reproduced when the same pathway is challenged by a smaller physiologic stimulus.",
-  "The direction of the paired variable is used to identify the primary mechanism rather than a secondary association."
+const CASE_OBSERVATION_DETAILS = [
+  "Vital signs and the relevant laboratory values are recorded at baseline and 30 minutes later.",
+  "The report includes paired serum values and a tracing obtained during the same encounter.",
+  "A repeat measurement is obtained after the patient is observed without additional treatment.",
+  "A bedside study includes a baseline sample, a timed sample, and a concurrent physiologic tracing.",
+  "Medication exposure, fluid intake, and urine output during the preceding 6 hours are documented.",
+  "The laboratory report includes serum chemistry, hematocrit, and a targeted physiologic measurement.",
+  "A graph in the chart shows the measured variable at baseline and at peak symptoms.",
+  "The study includes a matched control condition from the same patient or preparation.",
+  "The measured value is compared with a recent outpatient value from the same patient.",
+  "The chart includes the primary measurement and one adjacent variable from the same organ system.",
+  "Serum values and the relevant pressure, flow, voltage, or hormone measurement are obtained together.",
+  "The timing of symptoms is aligned with the laboratory sample and the physiologic tracing.",
+  "The same measurement is repeated after a standardized meal, fluid load, posture change, or drug exposure.",
+  "The report includes both the immediate value and a value obtained after partial clinical stabilization.",
+  "The patient has same-day vital signs and a paired laboratory value documented in the chart.",
+  "The patient is monitored during the first hour after the event, before long-term adaptation occurs.",
+  "The measurement is obtained from the tissue or compartment most relevant to the clinical event.",
+  "The clinical note includes intake, output, vital signs, and the most relevant serum value.",
+  "The tracing is interpreted alongside the patient history and a same-day laboratory panel.",
+  "The abnormal value is shown with a paired measurement that helps narrow the physiologic process."
 ];
 
 const QUESTION_VARIANT_FRAMES = [
@@ -449,16 +449,16 @@ const TOPIC_CONCEPTS = {
     c("Urinary titratable acid excretion increases.", "Which buffer is most involved?", "Phosphate", ["Glucose", "Albumin filtered in large amounts", "Hemoglobin in tubular lumen", "Bile acids"], "Filtered phosphate buffers secreted hydrogen ions and contributes to acid excretion.", "Explain titratable acid excretion.")
   ],
   "Body Volume": [
-    c("Isotonic fluid is lost from the extracellular compartment during secretory diarrhea.", "Which compartment change is expected after equilibration?", "Decreased ECF volume with unchanged ICF volume and unchanged osmolality", ["Decreased ECF and decreased ICF volumes with increased osmolality", "Increased ICF volume with decreased osmolality", "Increased ECF volume with unchanged ICF volume", "Unchanged ECF volume with decreased plasma protein concentration"], "Isotonic contraction removes fluid from the ECF without changing osmolality, so there is no osmotic water shift into or out of cells. Plasma protein concentration and hematocrit tend to rise because plasma water is contracted.", "Predict body-fluid changes during isotonic contraction."),
-    c("A patient receives a large infusion of isotonic saline.", "Which immediate body-fluid pattern is expected?", "Increased ECF volume with unchanged ICF volume and unchanged osmolality", ["Increased ICF volume with decreased osmolality", "Decreased ECF volume with increased osmolality", "Increased ECF and ICF osmolality", "Decreased plasma volume with increased plasma protein concentration"], "Isotonic expansion adds fluid to the ECF without changing osmolality, so ICF volume is unchanged. Plasma proteins and hematocrit decrease by dilution.", "Predict body-fluid changes during isotonic expansion."),
-    c("Profuse sweating causes hypotonic fluid loss without water replacement.", "Which pattern is expected after equilibration?", "Decreased ECF volume, decreased ICF volume, and increased osmolality", ["Increased ECF volume with decreased osmolality", "Decreased ECF volume with increased ICF volume", "Unchanged ICF volume with unchanged osmolality", "Increased plasma protein concentration with decreased hematocrit only"], "Hypertonic contraction raises ECF osmolality and draws water out of cells, decreasing both ECF and ICF volumes. Plasma protein concentration rises; hematocrit may rise less or remain near normal because red cells shrink while plasma volume falls.", "Predict body-fluid changes during hypertonic contraction."),
-    c("A hypertonic saline infusion is administered rapidly.", "Which body-fluid change is expected after equilibration?", "Increased ECF volume, decreased ICF volume, and increased osmolality", ["Increased ICF volume with decreased osmolality", "Decreased ECF volume with unchanged ICF volume", "Decreased ECF and ICF osmolality", "Increased hematocrit from red cell swelling"], "Hypertonic expansion increases ECF osmolality and pulls water from cells into the ECF, expanding ECF and contracting ICF. Plasma proteins and hematocrit generally decrease because plasma volume expands and red cells shrink.", "Predict body-fluid changes during hypertonic expansion."),
-    c("A patient drinks a large volume of water after taking desmopressin.", "Which pattern is expected after equilibration?", "Increased ECF volume, increased ICF volume, and decreased osmolality", ["Increased ECF volume with increased osmolality", "Decreased ICF volume with increased osmolality", "Decreased ECF volume with unchanged osmolality", "Increased plasma protein concentration from hemoconcentration"], "Hypotonic expansion lowers ECF osmolality, so water enters cells; both ECF and ICF volumes increase and osmolality falls. Plasma proteins and hematocrit decrease by dilution and red cell swelling.", "Predict body-fluid changes during hypotonic expansion."),
-    c("Primary adrenal insufficiency causes renal sodium chloride wasting with water retention relative to solute.", "Which pattern is expected after equilibration?", "Decreased ECF volume, increased ICF volume, and decreased osmolality", ["Increased ECF volume with unchanged osmolality", "Decreased ECF and ICF volumes with increased osmolality", "Increased ECF volume and decreased ICF volume", "Decreased hematocrit from plasma volume expansion"], "Hypotonic contraction removes more solute than water from the ECF, lowering osmolality and shifting water into cells. ECF volume falls, ICF volume rises, and plasma proteins and hematocrit tend to increase.", "Predict body-fluid changes during hypotonic contraction."),
-    c("Mannitol remains in the extracellular fluid after intravenous administration.", "Which compartment change is expected before renal excretion?", "ECF expansion with ICF contraction from osmotic water shift", ["ICF expansion with ECF contraction", "Equal expansion of ECF and ICF without osmolality change", "Pure plasma protein loss without water shift", "Decreased ECF osmolality with red cell swelling"], "An effective extracellular osmole raises ECF osmolality and pulls water from the ICF into the ECF. This expands ECF, contracts ICF, and dilutes plasma proteins and hematocrit.", "Relate effective osmoles to body-fluid compartments."),
-    c("A patient has extensive burns with leakage of protein-rich plasma into the interstitium.", "Which laboratory pattern is most likely early?", "Increased hematocrit with decreased plasma protein concentration", ["Decreased hematocrit with increased plasma protein concentration", "Unchanged hematocrit with increased plasma protein concentration", "Decreased hematocrit with unchanged plasma proteins", "Increased plasma protein concentration from albumin retention"], "Burns can cause plasma fluid and protein loss from the intravascular space. Plasma volume falls, raising hematocrit, while plasma protein concentration falls because protein is lost from the vascular compartment.", "Connect capillary leak with hematocrit and plasma proteins."),
-    c("A patient has acute whole-blood hemorrhage before fluid shifts occur.", "Which immediate laboratory pattern is expected?", "Initially unchanged hematocrit and plasma protein concentration", ["Increased hematocrit with decreased plasma proteins", "Decreased hematocrit with unchanged plasma proteins", "Increased plasma proteins from hemoconcentration", "Decreased plasma proteins from isotonic saline dilution"], "Acute whole-blood loss removes red cells and plasma proportionally, so hematocrit and plasma protein concentration may initially remain near normal. Later interstitial fluid shift or resuscitation can lower both.", "Distinguish acute hemorrhage from plasma water loss."),
-    c("A patient receives a large volume of isotonic saline after hemorrhage.", "Which laboratory change is expected after intravascular dilution?", "Decreased hematocrit and decreased plasma protein concentration", ["Increased hematocrit and increased plasma protein concentration", "Unchanged hematocrit with increased plasma protein concentration", "Increased hematocrit with decreased plasma protein concentration", "Increased plasma protein concentration from sodium retention"], "Isotonic crystalloid expands plasma volume without adding red cells or albumin, diluting both hematocrit and plasma protein concentration.", "Predict dilutional effects of isotonic resuscitation.")
+    c("A patient continues to pass large-volume watery stool during the first several hours of illness.", "Which compartment change is expected after equilibration?", "Decreased ECF volume with unchanged ICF volume and unchanged osmolality", ["Decreased ECF and decreased ICF volumes with increased osmolality", "Increased ICF volume with decreased osmolality", "Increased ECF volume with unchanged ICF volume", "Unchanged ECF volume with decreased plasma protein concentration"], "Isotonic contraction removes fluid from the ECF without changing osmolality, so there is no osmotic water shift into or out of cells. Plasma protein concentration and hematocrit tend to rise because plasma water is contracted.", "Predict body-fluid changes during isotonic contraction."),
+    c("A patient receives several liters of 0.9% sodium chloride through a peripheral intravenous catheter.", "Which immediate body-fluid pattern is expected?", "Increased ECF volume with unchanged ICF volume and unchanged osmolality", ["Increased ICF volume with decreased osmolality", "Decreased ECF volume with increased osmolality", "Increased ECF and ICF osmolality", "Decreased plasma volume with increased plasma protein concentration"], "Isotonic expansion adds fluid to the ECF without changing osmolality, so ICF volume is unchanged. Plasma proteins and hematocrit decrease by dilution.", "Predict body-fluid changes during isotonic expansion."),
+    c("A runner loses sweat for several hours and is unable to drink water during the event.", "Which pattern is expected after equilibration?", "Decreased ECF volume, decreased ICF volume, and increased osmolality", ["Increased ECF volume with decreased osmolality", "Decreased ECF volume with increased ICF volume", "Unchanged ICF volume with unchanged osmolality", "Increased plasma protein concentration with decreased hematocrit only"], "Hypertonic contraction raises ECF osmolality and draws water out of cells, decreasing both ECF and ICF volumes. Plasma protein concentration rises; hematocrit may rise less or remain near normal because red cells shrink while plasma volume falls.", "Predict body-fluid changes during hypertonic contraction."),
+    c("A patient receives 3% sodium chloride for severe symptomatic hyponatremia.", "Which body-fluid change is expected after equilibration?", "Increased ECF volume, decreased ICF volume, and increased osmolality", ["Increased ICF volume with decreased osmolality", "Decreased ECF volume with unchanged ICF volume", "Decreased ECF and ICF osmolality", "Increased hematocrit from red cell swelling"], "Hypertonic expansion increases ECF osmolality and pulls water from cells into the ECF, expanding ECF and contracting ICF. Plasma proteins and hematocrit generally decrease because plasma volume expands and red cells shrink.", "Predict body-fluid changes during hypertonic expansion."),
+    c("A patient taking desmopressin drinks several liters of water over a short period.", "Which pattern is expected after equilibration?", "Increased ECF volume, increased ICF volume, and decreased osmolality", ["Increased ECF volume with increased osmolality", "Decreased ICF volume with increased osmolality", "Decreased ECF volume with unchanged osmolality", "Increased plasma protein concentration from hemoconcentration"], "Hypotonic expansion lowers ECF osmolality, so water enters cells; both ECF and ICF volumes increase and osmolality falls. Plasma proteins and hematocrit decrease by dilution and red cell swelling.", "Predict body-fluid changes during hypotonic expansion."),
+    c("A patient with untreated primary adrenal insufficiency has renal sodium loss and orthostatic symptoms.", "Which pattern is expected after equilibration?", "Decreased ECF volume, increased ICF volume, and decreased osmolality", ["Increased ECF volume with unchanged osmolality", "Decreased ECF and ICF volumes with increased osmolality", "Increased ECF volume and decreased ICF volume", "Decreased hematocrit from plasma volume expansion"], "Hypotonic contraction removes more solute than water from the ECF, lowering osmolality and shifting water into cells. ECF volume falls, ICF volume rises, and plasma proteins and hematocrit tend to increase.", "Predict body-fluid changes during hypotonic contraction."),
+    c("A patient receives intravenous mannitol for elevated intracranial pressure.", "Which compartment change is expected before renal excretion?", "ECF expansion with ICF contraction from osmotic water shift", ["ICF expansion with ECF contraction", "Equal expansion of ECF and ICF without osmolality change", "Pure plasma protein loss without water shift", "Decreased ECF osmolality with red cell swelling"], "An effective extracellular osmole raises ECF osmolality and pulls water from the ICF into the ECF. This expands ECF, contracts ICF, and dilutes plasma proteins and hematocrit.", "Relate effective osmoles to body-fluid compartments."),
+    c("A patient with extensive burns develops edema around the injured tissue shortly after arrival.", "Which laboratory pattern is most likely early?", "Increased hematocrit with decreased plasma protein concentration", ["Decreased hematocrit with increased plasma protein concentration", "Unchanged hematocrit with increased plasma protein concentration", "Decreased hematocrit with unchanged plasma proteins", "Increased plasma protein concentration from albumin retention"], "Burns can cause plasma fluid and protein loss from the intravascular space. Plasma volume falls, raising hematocrit, while plasma protein concentration falls because protein is lost from the vascular compartment.", "Connect capillary leak with hematocrit and plasma proteins."),
+    c("A trauma patient has acute blood loss before intravenous fluids are administered.", "Which immediate laboratory pattern is expected?", "Initially unchanged hematocrit and plasma protein concentration", ["Increased hematocrit with decreased plasma proteins", "Decreased hematocrit with unchanged plasma proteins", "Increased plasma proteins from hemoconcentration", "Decreased plasma proteins from isotonic saline dilution"], "Acute whole-blood loss removes red cells and plasma proportionally, so hematocrit and plasma protein concentration may initially remain near normal. Later interstitial fluid shift or resuscitation can lower both.", "Distinguish acute hemorrhage from plasma water loss."),
+    c("A trauma patient receives several liters of 0.9% sodium chloride before blood products are available.", "Which laboratory change is expected after intravascular dilution?", "Decreased hematocrit and decreased plasma protein concentration", ["Increased hematocrit and increased plasma protein concentration", "Unchanged hematocrit with increased plasma protein concentration", "Increased hematocrit with decreased plasma protein concentration", "Increased plasma protein concentration from sodium retention"], "Isotonic crystalloid expands plasma volume without adding red cells or albumin, diluting both hematocrit and plasma protein concentration.", "Predict dilutional effects of isotonic resuscitation.")
   ],
   "Hypothalamic-Pituitary Axis": [
     c("A hypothalamic hormone travels through the hypophyseal portal system.", "Which pituitary region is targeted?", "Anterior pituitary", ["Posterior pituitary", "Pineal gland", "Adrenal medulla", "Thyroid follicle"], "Hypothalamic releasing hormones reach the anterior pituitary through the portal circulation.", "Describe hypothalamic control of anterior pituitary."),
@@ -674,7 +674,7 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
     stem: `${caseStem} ${leadIn}`,
     choices: rotateChoices(choices, 0, rotationSeed),
     answer: rotatedAnswer(0, choices.length, rotationSeed),
-    explanation: `${concept.explanation} ${variantFrame.explanationFocus}`,
+    explanation: concept.explanation,
     objective: `${concept.objective} ${isVignette ? "Applied vignette." : "Focused concept."} ${variantFrame.objectiveFocus}`,
     style: isVignette ? "CAS-like NBME-style applied clinical vignette" : "NBME-style single-best-answer",
     difficultyIndex: isVignette ? DIFFICULTY_VALUES[index % DIFFICULTY_VALUES.length] : 0,
@@ -685,9 +685,38 @@ function createQuestion(systemSpec, topic, concept, id, index, variant) {
 
 function buildAdvancedVignetteStem(concept, topic, index, system) {
   const setting = nbmeClinicalCaseForSystem(system, topic, index, concept);
-  const frame = INTEGRATED_STEM_FRAMES[Math.floor(index / 5) % INTEGRATED_STEM_FRAMES.length];
-  const clue = integratedClueForConcept(concept, topic);
-  return `${setting} ${frame} ${clue} ${concept.setup}`;
+  const frame = topic === "Body Volume"
+    ? bodyVolumeObservationDetail(index)
+    : CASE_OBSERVATION_DETAILS[Math.floor(index / 5) % CASE_OBSERVATION_DETAILS.length];
+  const clue = integratedClueForConcept(concept, topic, index);
+  const setup = topic === "Body Volume" ? "" : ` ${concept.setup}`;
+  return `${setting} ${frame} ${clue}${setup}`;
+}
+
+function bodyVolumeObservationDetail(index) {
+  const details = [
+    "Blood pressure is 96/58 mm Hg while standing, pulse is 112/min, and mucous membranes are dry.",
+    "Body weight is 1.8 kg lower than the prior clinic measurement, and urine output has decreased.",
+    "The patient reports dizziness on standing, and capillary refill is slightly delayed.",
+    "Blood pressure is 118/70 mm Hg supine and 100/62 mm Hg standing, with a pulse increase of 18/min.",
+    "No edema is present, lungs are clear, and the extremities are warm.",
+    "A same-day basic metabolic panel and complete blood count are available.",
+    "The patient has not received albumin, packed red blood cells, or diuretics before the sample is drawn.",
+    "The sample is drawn before renal or hormonal compensation has substantially changed total body solute.",
+    "Fluid intake and urine output during the preceding 6 hours are recorded in the chart.",
+    "The physical examination is otherwise unchanged from a visit earlier the same day.",
+    "Blood pressure is 134/76 mm Hg, pulse is 84/min, and oxygen saturation is 98% on room air.",
+    "A nursing record documents the exact type and volume of fluid administered.",
+    "The patient has no evidence of active bleeding at the time of the repeat measurement.",
+    "The sample is obtained before any blood products or albumin-containing fluids are administered.",
+    "A repeat blood sample is obtained after equilibration but before additional therapy.",
+    "The patient remains awake and oriented, and no focal neurologic deficits are present.",
+    "The medication and fluid exposure are verified from the medication administration record.",
+    "Urine output, serum sodium, and body weight are measured during the same observation period.",
+    "The clinician compares the values with a baseline sample obtained earlier that morning.",
+    "The event occurs over several hours, allowing water shifts between compartments to approach equilibrium."
+  ];
+  return details[Math.floor(index / 5) % details.length];
 }
 
 function buildCaseSequence(systemSpec, topic, index, sequenceTotal) {
@@ -885,41 +914,90 @@ function integratedSettingForSystem(system, topic, index) {
   return "During an integrated physiology study, paired measurements from the relevant organ systems are obtained before and after a targeted perturbation.";
 }
 
-function integratedClueForConcept(concept, topic) {
+function integratedClueForConcept(concept, topic, index = 0) {
   const text = `${topic} ${concept.setup} ${concept.correct} ${concept.explanation} ${concept.objective}`.toLowerCase();
 
   if (topic === "Body Volume") {
     if (text.includes("isotonic contraction")) {
-      return "The lost fluid has approximately the same osmolality as plasma, so the key comparison is ECF volume loss without a transcellular water shift.";
+      return "Serum sodium is 140 mEq/L, plasma osmolality is 290 mOsm/kg, hematocrit has increased from 42% to 48%, and total plasma protein has increased from 7.0 to 8.2 g/dL.";
     }
     if (text.includes("isotonic expansion")) {
-      return "The infused fluid remains extracellular and does not change effective osmolality, so dilutional changes in plasma proteins and hematocrit are expected.";
+      return "Serum sodium is 140 mEq/L, plasma osmolality is 289 mOsm/kg, hematocrit has decreased from 42% to 36%, and total plasma protein has decreased from 7.0 to 5.9 g/dL.";
     }
     if (text.includes("hypertonic contraction")) {
-      return "Water loss exceeds solute loss, increasing ECF osmolality and drawing water out of cells while plasma water contracts.";
+      return "Serum sodium is 151 mEq/L, plasma osmolality is 312 mOsm/kg, hematocrit is 46%, and total plasma protein is 8.0 g/dL.";
     }
     if (text.includes("hypertonic expansion")) {
-      return "An extracellular hypertonic load raises ECF osmolality and pulls water from the ICF into the ECF.";
+      return "Serum sodium is 158 mEq/L, plasma osmolality is 326 mOsm/kg, hematocrit has decreased from 42% to 37%, and total plasma protein has decreased from 7.0 to 6.1 g/dL.";
     }
     if (text.includes("hypotonic expansion")) {
-      return "Free water retention lowers ECF osmolality, expands both compartments after equilibration, and dilutes intravascular markers.";
+      return "Serum sodium is 123 mEq/L, plasma osmolality is 258 mOsm/kg, hematocrit has decreased from 42% to 38%, and total plasma protein has decreased from 7.0 to 6.4 g/dL.";
     }
     if (text.includes("hypotonic contraction")) {
-      return "Solute loss exceeds water loss, lowering ECF osmolality so water shifts into cells despite ECF contraction.";
+      return "Serum sodium is 126 mEq/L, plasma osmolality is 262 mOsm/kg, hematocrit is 47%, and total plasma protein is 8.1 g/dL.";
     }
     if (text.includes("effective extracellular osmole")) {
-      return "The added solute is effectively confined to the ECF, so the osmotic gradient shifts water out of cells.";
+      return "Measured plasma osmolality rises from 290 to 318 mOsm/kg, urine flow increases, and hematocrit decreases from 42% to 38% during the first hour.";
     }
     if (text.includes("capillary leak") || text.includes("burns")) {
-      return "Protein-rich plasma leaves the vascular space, decreasing plasma protein concentration while hemoconcentration raises hematocrit.";
+      return "Hematocrit is 54%, total plasma protein is 4.8 g/dL, and marked interstitial edema is present around the injured tissue.";
     }
     if (text.includes("whole-blood hemorrhage")) {
-      return "Red cells and plasma are lost in similar proportion before compensatory fluid shifts, so concentration ratios initially change little.";
+      return "Immediately after the event, hematocrit is 42% and total plasma protein is 7.0 g/dL, similar to values measured earlier that morning.";
     }
     if (text.includes("isotonic resuscitation")) {
-      return "Crystalloid expands plasma volume without adding albumin or red cells, producing dilutional decreases in hematocrit and plasma proteins.";
+      return "After fluid administration, hematocrit decreases from 42% to 34% and total plasma protein decreases from 7.0 to 5.6 g/dL.";
     }
   }
+  return topicMeasurementDetail(topic, index);
+}
+
+function topicMeasurementDetail(topic, index) {
+  const details = {
+    "Resting Membrane Potential": [
+      "Serum potassium is 5.8 mEq/L, serum sodium is 140 mEq/L, and the resting voltage is less negative than baseline.",
+      "A membrane recording shows a stable resting voltage before a change in extracellular ion composition.",
+      "Patch-clamp data include potassium leak conductance and resting membrane voltage measured in the same cell.",
+      "ATP concentration is preserved while extracellular ion concentrations are changed in the bath.",
+      "A Nernst table and a measured resting voltage are provided in the study report."
+    ],
+    "Transport Mechanisms": [
+      "Uptake is measured at several extracellular concentrations and after ATP depletion.",
+      "The transport assay includes luminal sodium removal and a structurally similar competing solute.",
+      "Membrane vesicle uptake is compared before and after addition of a carrier inhibitor.",
+      "The report lists ATP availability, sodium gradient status, and uptake rate.",
+      "The study measures whether uptake is saturable over the tested concentration range."
+    ],
+    "Body Volume": [
+      "Serum sodium, plasma osmolality, hematocrit, and total plasma protein are measured before and after the event.",
+      "Fluid intake, urine output, body weight, serum sodium, and hematocrit are recorded over 6 hours.",
+      "The report includes ECF markers, serum osmolality, hematocrit, and total plasma protein.",
+      "A table compares baseline and postevent values for plasma osmolality and intravascular concentration markers.",
+      "The clinical note documents the fluid source or loss and same-day serum and hematologic measurements."
+    ],
+    "Volume Regulation": [
+      "Mean arterial pressure, urine sodium, renin activity, aldosterone, and ADH are measured together.",
+      "The chart lists effective arterial volume markers and urine sodium during the first hour.",
+      "A paired measurement includes atrial pressure, renal perfusion pressure, and urinary sodium excretion.",
+      "Serum sodium, urine sodium, and neurohormonal markers are reported after the volume change.",
+      "The patient has simultaneous blood pressure, pulse, urine output, and hormone measurements."
+    ]
+  };
+
+  const defaultDetails = [
+    "The chart includes a focused laboratory panel and the primary physiologic measurement.",
+    "A tracing and paired laboratory value are obtained during the same clinical event.",
+    "The study report lists baseline and same-day values for the measured variable.",
+    "The clinical note documents the stimulus, timing, vital signs, and one relevant laboratory value.",
+    "A table compares the measured variable with an adjacent physiologic value from the same organ system."
+  ];
+
+  const items = details[topic] || defaultDetails;
+  return items[index % items.length];
+}
+
+function legacyIntegratedClueForConcept(concept, topic) {
+  const text = `${topic} ${concept.setup} ${concept.correct} ${concept.explanation} ${concept.objective}`.toLowerCase();
   if (text.includes("lipid-soluble steroid") || text.includes("simple diffusion through the lipid bilayer")) {
     return "Uptake is linear with extracellular concentration, is not saturable, and is unchanged by ATP depletion or collapse of the sodium gradient.";
   }
@@ -1009,7 +1087,7 @@ function integratedClueForConcept(concept, topic) {
 }
 
 function advancedDataForTopic(topic, index) {
-  return INTEGRATED_STEM_FRAMES[index % INTEGRATED_STEM_FRAMES.length];
+  return topicMeasurementDetail(topic, index);
 }
 
 function legacyAdvancedDataForTopic(topic, index) {

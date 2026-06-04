@@ -16,4 +16,4 @@ The static `question-bank.json` file contains 5,200 generated physiology questio
 
 ## Question Bank Audit
 
-The June 3, 2026 body-volume update adds `Renal / Body Volume` with 100 NBME-style items covering isotonic, hypertonic, and hypotonic contraction/expansion; mannitol; burns; acute hemorrhage; and isotonic resuscitation. Each item links ECF/ICF volume, osmolality, hematocrit, and plasma protein concentration. Repeated stems and repeated objective-answer variants were removed; projected difficulty values range from 0.80 to 0.95.
+The June 4, 2026 stem cleanup keeps `Renal / Body Volume` and removes generic explanatory comments from stems and Review explanations. Body-volume items now present clinical events plus sodium, osmolality, hematocrit, and plasma protein data so the compartment change must be inferred rather than stated in the question. Repeated stems and repeated objective-answer variants were removed; projected difficulty values range from 0.80 to 0.95.
